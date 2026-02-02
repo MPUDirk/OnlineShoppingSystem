@@ -129,3 +129,10 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / "collectedstatic"
+
+# Media files (User uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Custom User Model
+AUTH_USER_MODEL = 'user.CustomUser'
