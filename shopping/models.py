@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -39,7 +40,7 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='products'
+        related_name='shopping'
     )
     
     # Enable/disable (A18)

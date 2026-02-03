@@ -1,15 +1,23 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.utils import timezone
 
 
-class CustomUser(AbstractUser):
-    # username & email already exist in AbstractUser
-    full_name = models.CharField(max_length=100, blank=False)
-    email = models.EmailField(unique=True, blank=False, null=False)
+class CustomUser(models.Model):
+    """Independent profile-like model linked to Django's User via FK."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='custom_profiles',
+        default=1  # Replace with a valid user ID or adjust logic
+    )
+    full_name = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.username
+        return self.full_name or getattr(self.user, 'username', '')
 
 
 class ShippingAddress(models.Model):
@@ -20,7 +28,7 @@ class ShippingAddress(models.Model):
     )
     address = models.TextField()
     is_default = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'user',
-    'products',
+    'shopping',
 ]
 
 MIDDLEWARE = [
@@ -135,4 +135,4 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Custom User Model
-AUTH_USER_MODEL = 'user.CustomUser'
+AUTH_USER_MODEL = 'auth.User'
