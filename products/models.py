@@ -153,7 +153,12 @@ class Order(models.Model):
     )
     
     # Order information
-    shipping_address = models.TextField()
+    shipping_address = models.ForeignKey(
+        'user.ShippingAddress',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='orders'
+    )
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
