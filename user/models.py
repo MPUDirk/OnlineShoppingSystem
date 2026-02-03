@@ -3,20 +3,6 @@ from django.conf import settings
 from django.utils import timezone
 
 
-class CustomerUser(models.Model):
-    """Independent profile-like model linked to Django's User via FK."""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='customer_profiles',
-        default=1  # Replace with a valid user ID or adjust logic
-    )
-    email = models.EmailField(blank=True)
-
-    def __str__(self):
-        return getattr(self.user, 'username', '')
-
-
 class ShippingAddress(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
