@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+</head>
+<body>
+<header class="header">
+    <div class="container">
+        <h1 class="logo">在线商城</h1>
+        <nav class="nav">
+            <a href="{% url 'index' %}" class="nav-link">首页</a>
+            <a href="{% url 'index' %}#" class="nav-link" onclick="showAllProducts()">商品</a>
+
+            {% if user.is_authenticated %}
+                <span id="cartLink">
+                    <a href="#" class="nav-link" onclick="showPage('cart')">
+                        <div style="width: 20px; height: 20px; position: relative; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 4px;">
+                            <div style="width: 2px; height: 2px; left: 3px; top: 15px; position: absolute; outline: 1px #ECEEF2 solid; outline-offset: -0.5px"></div>
+                            <div style="width: 2px; height: 2px; left: 15px; top: 15px; position: absolute; outline: 1px #ECEEF2 solid; outline-offset: -0.5px"></div>
+                            <div style="width: 16px; height: 10px; left: 2px; top: 2px; position: absolute; outline: 1px #FFFBFB solid; outline-offset: -0.5px"></div>
+                        </div>
+                        购物车
+                    </a>
+                </span>
+                <span id="ordersLink">
+                    <a href="#" class="nav-link" onclick="showPage('orders')">订单</a>
+                </span>
+                <span id="userInfo" class="nav-user">Welcome, {{ user.first_name }} {{ user.last_name }}</span>
+                <form action="{% url 'user:logout' %}" method="post">
+                    {% csrf_token %}
+                    <span id="logoutLink">
+                        <button type="submit" class="nav-link">登出</button>
+                    </span>
+                </form>
+            {% else %}
+                <span id="loginLinks">
+                        <a href="{% url 'user:login' %}" class="nav-link">登录</a>
+                        <a href="{% url 'user:signup' %}" class="nav-link">注册</a>
+                    </span>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        {% block main %}{% endblock %}
+
+        <!-- 商品列表 -->
+        <div id="products" class="page">
+            <div class="card">
+                <h2>商品搜索</h2>
+                <form class="search-bar" onsubmit="searchProducts(event)">
+                    <input type="text" class="search-input" id="productSearch" placeholder="搜索商品名称...">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 id="categoryTitle">商品列表</h2>
+                    <div>
+                        <span id="productCount">共 0 件商品</span>
+                    </div>
+                </div>
+                <div class="product-grid" id="productGrid"></div>
+            </div>
+        </div>
+
+        <!-- 商品详情 -->
+        <div id="productDetail" class="page">
+            <div class="card" id="productDetailContent"></div>
+        </div>
+
+        <!-- 购物车 -->
+        <div id="cart" class="page">
+            <div class="card">
+                <h2>我的购物车</h2>
+                <div id="cartContent"></div>
+            </div>
+        </div>
+
+        <!-- 订单管理 -->
+        <div id="orders" class="page">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>我的订单</h2>
+                    <div>
+                        <select id="orderStatusFilter" onchange="filterOrders()"
+                                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">全部订单</option>
+                            <option value="pending">待处理</option>
+                            <option value="shipped">已发货</option>
+                            <option value="delivered">已送达</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="ordersList"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>MPU在线商城</p>
+    </div>
+</footer>
+
+<script src="{% static 'js/base.js' %}"></script>
+</body>
+</html>
