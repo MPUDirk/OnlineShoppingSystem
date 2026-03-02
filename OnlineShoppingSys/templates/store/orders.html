@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}订单管理 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>我的订单</h2>
+        <div>
+            <select id="order-status-filter" onchange="fetchOrders()" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">全部订单</option>
+                <option value="pending">待处理</option>
+                <option value="shipped">已发货</option>
+                <option value="delivered">已送达</option>
+                <option value="cancelled">已取消</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="orders-loading" class="text-center" style="padding: 3rem;">
+        <p style="color: #666; font-size: 1.1rem;">正在加载订单...</p>
+    </div>
+
+    <div id="orders-content">
+        <!-- 订单将在此处插入 -->
+    </div>
+
+    <div id="orders-empty" class="text-center" style="padding: 3rem; display: none;">
+        <p style="color: #666; font-size: 1.1rem;">暂无订单</p>
+    </div>
+</div>
+
+<!-- 引入 Axios -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchOrders();
+    });
+
+    function fetchOrders() {
+        const statusFilter = document.getElementById('order-status-filter').value;
+        const loading = document.getElementById('orders-loading');
+        const content = document.getElementById('orders-content');
+        const empty = document.getElementById('orders-empty');
+
+        loading.style.display = 'block';
+        content.innerHTML = '';
+        empty.style.display = 'none';
+//'/api/orders/'占位
+        axios.get('/api/orders/', {
+            params: {
+                status: statusFilter
+            }
+        })
+        .then(function(response) {
+            const orders = response.data;
+
+            loading.style.display = 'none';
+
+            if (orders.length === 0) {
+                empty.style.display = 'block';
+            } else {
+                renderOrders(orders);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error fetching orders:', error);
+            loading.innerHTML = '<p class="text-danger">加载订单失败，请刷新重试</p>';
+        });
+    }
+
+    function renderOrders(orders) {
+        const container = document.getElementById('orders-content');
+        
+        orders.forEach(function(order) {
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            
+            let itemsHtml = '';
+            (order.items || []).forEach(function(item) {
+                itemsHtml += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            <strong>${item.product.name}</strong>
+                            <br />
+                            <small style="color: #666;">数量: ${item.quantity}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>¥${item.unit_price}</div>
+                            <div style="color: #e74c3c; font-weight: bold;">¥${item.subtotal}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            div.innerHTML = `
+                <div class="order-header">
+                    <div>
+                        <strong>订单号: ${order.order_number}</strong>
+                        <br />
+                        <small style="color: #666;">下单时间: ${new Date(order.created_at).toLocaleString()}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="order-status status-${order.status}">${order.status_display || order.status}</span>
+                        <br />
+                        <strong style="color: #e74c3c;">¥${order.total_amount}</strong>
+                    </div>
+                </div>
+
+                <div style="padding: 1rem;">
+                    <h4>商品清单</h4>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        ${itemsHtml}
+                    </div>
+                    <div style="text-align: right; margin-top: 1rem;">
+                         <a href="/orders/${order.id}/" class="btn btn-primary">查看详情</a>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+</script>
+{% endblock %}

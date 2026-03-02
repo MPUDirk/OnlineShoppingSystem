@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block main %}
+    <!-- 首页 -->
+    <div id="home" class="page active">
+        <div class="card"
+             style="background-image: url('https://m.media-amazon.com/images/I/71ow30oSEgL._SX3000_.jpg'); background-size: cover; background-position: center; height: 400px; display: flex; align-items: center; justify-content: center;">
+            <h1 style="color: white; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">欢迎来到在线商城</h1>
+        </div>
+
+        <!-- 搜索栏 -->
+        <div class="card">
+            <form class="search-bar" onsubmit="searchProducts(event)" style="margin-bottom: 0;">
+                <input type="text" class="search-input" id="homeSearch" placeholder="搜索您想要的商品...">
+                <button type="submit" class="btn btn-primary">搜索</button>
+            </form>
+        </div>
+
+        <div class="home-layout">
+            <!-- 左侧侧边栏：商品分类 -->
+            <aside class="home-sidebar">
+                <div class="card" style="height: 100%">
+                    <h2 class="mb-3">商品分类</h2>
+                    <div class="category-list">
+                        <a href="#" onclick="filterByCategory('electronics'); return false;" class="category-item">
+                            <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">电子产品</h3>
+                            <p id="count-electronics" style="color: #666; font-size: 0.85rem; margin: 0;">15 件商品</p>
+                        </a>
+                        <a href="#" onclick="filterByCategory('clothing'); return false;" class="category-item">
+                            <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">服装</h3>
+                            <p id="count-clothing" style="color: #666; font-size: 0.85rem; margin: 0;">12 件商品</p>
+                        </a>
+                        <a href="#" onclick="filterByCategory('books'); return false;" class="category-item">
+                            <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">图书</h3>
+                            <p id="count-books" style="color: #666; font-size: 0.85rem; margin: 0;">8 件商品</p>
+                        </a>
+                        <a href="#" onclick="filterByCategory('home'); return false;" class="category-item">
+                            <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">家居</h3>
+                            <p id="count-home" style="color: #666; font-size: 0.85rem; margin: 0;">10 件商品</p>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 右侧主要内容 -->
+            <div class="home-content">
+                <!-- 热门商品 -->
+                <div class="card" style="height: 100%">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>热门商品</h2>
+                        <a href="#" class="btn btn-primary" onclick="showAllProducts()">查看全部</a>
+                    </div>
+                    <div class="product-grid" id="featuredProducts"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部：新品上市 -->
+        <div class="card" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>新品上市</h2>
+            </div>
+            <div class="product-grid" id="newArrivals"></div>
+        </div>
+    </div>
+{% endblock %}
