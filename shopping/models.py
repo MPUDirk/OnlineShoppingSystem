@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -40,7 +39,7 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='shopping'
+        related_name='products'
     )
     
     # Enable/disable (A18)
@@ -153,23 +152,24 @@ class Order(models.Model):
         related_name='orders'
     )
     
-    # Order information
+    # Order information (A13: shipping address in order detail)
     shipping_address = models.ForeignKey(
         'user.ShippingAddress',
         on_delete=models.SET_NULL,
         null=True,
         related_name='orders'
     )
+    shipping_address_text = models.TextField(blank=True)  # Snapshot for display if address deleted
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))]
     )
     
-    # Order status
+    # Order status (Block B2: at least 4 values - pending, shipped, cancelled, hold)
     ORDER_STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('processing', 'Processing'),
+        ('hold', 'Hold'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
@@ -183,6 +183,10 @@ class Order(models.Model):
     # Timestamps
     purchase_date = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Block B4: dates for status changes (shipment date, cancel date)
+    shipped_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         ordering = ['-purchase_date']
@@ -245,3 +249,25 @@ class OrderItem(models.Model):
         if not self.subtotal:
             self.subtotal = self.unit_price * self.quantity
         super().save(*args, **kwargs)
+
+
+class OrderStatusHistory(models.Model):
+    """
+    Block B4: record of order status changes with dates.
+    Tracks shipment date, cancel date, etc. for display in order detail.
+    """
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='status_history'
+    )
+    status = models.CharField(max_length=20)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-changed_at']
+        verbose_name_plural = 'Order status history'
+
+    def __str__(self):
+        return f"{self.order.order_number} - {self.status} at {self.changed_at}"
