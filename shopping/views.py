@@ -1,8 +1,43 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms.models import model_to_dict
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views import View
+from django.views.generic import ListView
+
 from .models import Product, ShoppingCart, CartItem
+
+
+class ProductDetailView(ListView):
+    model = Product
+    allow_empty = True
+    template_name = 'store/product_list.html'
+    paginate_by = 20 # twenty products per page
+
+    def get_context_data(self, *, object_list = ..., **kwargs):
+        context = super().get_context_data(object_list=self.object_list, **kwargs)
+
+        context['page_list'] = context['page_obj'].object_list
+
+        return context
+
+class ShoppingCartListView(LoginRequiredMixin, ListView):
+    model = CartItem
+    template_name = 'store/cart.html'
+    login_url = 'user:login'
+
+    def get_queryset(self):
+        cart = ShoppingCart.objects.get(customer_id=self.request.user.id)
+        return CartItem.objects.filter(cart_id=cart.id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        cart_items = self.get_queryset()
+        map_products = {item.id: Product.objects.get(id=item.product_id) for item in cart_items}
+        context['products'] = map_products
+
+        return context
 
 class ProductView(View):
     def get(self, request, *args, **kwargs):
