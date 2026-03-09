@@ -495,7 +495,7 @@ function showProductDetail(productId) {
                             </div>
                         ` : `
                             <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                                <p style="margin: 0;">请先 <a href="#" onclick="showPage('login')">登录</a> 后再购买商品</p>
+                                <p style="margin: 0;">请先 <a href="/user/login/">登录</a> 后再购买商品</p>
                             </div>
                         `}
                     </div>
@@ -527,7 +527,7 @@ function showProductDetail(productId) {
 // 添加到购物车
 function addToCart(productId) {
     if (!currentUser) {
-        showPage('login');
+        window.location.href = '/user/login/';
         return;
     }
 
