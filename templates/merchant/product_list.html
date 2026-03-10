@@ -1,0 +1,259 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}商品列表 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="products-title" class="page-title">商品列表</h1>
+            <p class="page-subtitle">支持名称/ID子串搜索、状态与分类筛选。</p>
+        </div>
+        <div class="actions">
+            <a class="btn btn-primary" href="/merchant/products/add/">新增商品</a>
+            <button class="btn btn-secondary" type="button" onclick="patchUpdateProductStatus('disabled')">批量禁用</button>
+            <button class="btn btn-danger" type="button" onclick="patchDeleteProducts()">批量删除</button>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem;" aria-label="搜索与筛选">
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label class="form-label" for="product-search">搜索</label>
+                <input id="product-search" class="form-control" type="search" placeholder="按商品名称或商品ID子串搜索" aria-label="商品搜索输入框">
+            </div>
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="product-status">上架状态</label>
+                    <select id="product-status" class="form-control" aria-label="上架状态筛选">
+                        <option value="">全部</option>
+                        <option value="active">启用</option>
+                        <option value="disabled">禁用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="product-category">商品分类</label>
+                    <select id="product-category" class="form-control" aria-label="商品分类筛选">
+                        <option value="">全部</option>
+                        <option value="electronics">电子产品</option>
+                        <option value="clothing">服装</option>
+                        <option value="books">图书</option>
+                        <option value="home">家居</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn btn-secondary" type="button" onclick="fetchProducts()">搜索</button>
+            <button class="btn btn-secondary" type="button" onclick="resetProductFilter()">重置</button>
+        </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top: 1rem;" aria-label="商品表格">
+        <table class="table" aria-label="商品列表表格">
+            <thead>
+                <tr>
+                    <th scope="col"><input type="checkbox" id="check-all-products" aria-label="全选商品" onchange="toggleSelectAll(this)"></th>
+                    <th scope="col">商品ID</th>
+                    <th scope="col">商品名称</th>
+                    <th scope="col">价格</th>
+                    <th scope="col">库存状态</th>
+                    <th scope="col">上架状态</th>
+                    <th scope="col">操作</th>
+                </tr>
+            </thead>
+            <tbody id="product-list-body">
+                <!-- Populated by JS -->
+                <tr><td colspan="7" class="muted text-center">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="actions" style="justify-content: space-between; margin-top: 1rem;" aria-label="分页">
+        <span class="muted" id="product-pagination-info">第 1 页 / 共 1 页</span>
+        <div class="inline">
+            <button class="btn btn-secondary" type="button" onclick="prevProductPage()">上一页</button>
+            <span class="pill" id="product-current-page" aria-label="当前页">1</span>
+            <button class="btn btn-secondary" type="button" onclick="nextProductPage()">下一页</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const API = {
+        products: {
+            list: '/api/merchant/products', // 获取商品列表（支持搜索、筛选与分页）
+            delete: (id) => `/api/merchant/products/${id}`, // 删除单个商品
+            batchDelete: '/api/merchant/products/batch/delete', // 批量删除商品
+            updateStatus: (id) => `/api/merchant/products/${id}/status`, // 更新单个商品状态（上架/下架）
+            batchStatus: '/api/merchant/products/batch/status' // 批量更新商品状态
+        }
+    };
+
+    let currentPage = 1;
+    let totalPages = 1;
+    const PAGE_SIZE = 10; // 显式定义分页大小，与后端保持一致
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchProducts();
+    });
+
+    function fetchProducts(page) {
+        if (page) currentPage = page;
+        console.log(`Fetching products for page ${currentPage}...`);
+        
+        const params = {
+            page: currentPage,
+            page_size: PAGE_SIZE, // 传递给后端（如果后端支持动态分页大小）
+            q: document.getElementById('product-search').value,
+            status: document.getElementById('product-status').value,
+            category: document.getElementById('product-category').value
+        };
+        
+    
+        axios.get(API.products.list, { params })
+            .then(res => {
+                const data = res.data;
+
+                const results = data.results || data.data || [];
+                const count = data.count || data.total || 0;
+                
+                // 优先使用后端返回的总页数，否则自行计算
+                totalPages = data.total_pages || Math.ceil(count / PAGE_SIZE) || 1;
+                
+                renderProductList(results); 
+                updatePaginationInfo();
+            })
+            .catch(err => {
+                console.error('Failed to fetch products:', err);
+                document.getElementById('product-list-body').innerHTML = '<tr><td colspan="7" class="text-danger text-center">数据加载失败</td></tr>';
+            });
+    }
+
+    function renderProductList(products) {
+        const tbody = document.getElementById('product-list-body');
+        if (products.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="muted text-center">暂无数据</td></tr>';
+            return;
+        }
+        tbody.innerHTML = products.map(p => `
+            <tr>
+                <td><input type="checkbox" class="product-checkbox" value="${p.id}"></td>
+                <td>${p.id}</td>
+                <td>${p.name}</td>
+                <td>¥${p.price}</td>
+                <td><span class="status status-${p.stock_status === 'ok' ? 'ok' : 'warn'}">${p.stock_status === 'ok' ? '有货' : '缺货'}</span></td>
+                <td><span class="status status-${p.status === 'active' ? 'info' : 'danger'}">${p.status === 'active' ? '启用' : '禁用'}</span></td>
+                <td>
+                    <div class="row-actions">
+                        <a class="link" href="/merchant/products/${p.id}/edit/">编辑</a>
+                        ${p.status === 'active' 
+                            ? `<button class="link link-warn" type="button" onclick="updateProductStatus('${p.id}', 'disabled')">禁用</button>`
+                            : `<button class="link link-ok" type="button" onclick="updateProductStatus('${p.id}', 'active')">启用</button>`
+                        }
+                        <button class="link link-danger" type="button" onclick="deleteProduct('${p.id}')">删除</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateProductStatus(id, status) {
+        if (!confirm(`确认${status === 'active' ? '启用' : '禁用'}该商品吗？`)) return;
+        
+        axios.patch(API.products.updateStatus(id), { status })
+            .then(() => {
+                alert('操作成功');
+                fetchProducts(currentPage);
+            })
+            .catch(err => alert('操作失败: ' + (err.response?.data?.message || err.message)));
+    }
+
+    function deleteProduct(id) {
+        if (!confirm('确认删除该商品吗？此操作不可恢复。')) return;
+
+        axios.delete(API.products.delete(id))
+            .then(() => {
+                alert('删除成功');
+                fetchProducts(currentPage);
+            })
+            .catch(err => alert('删除失败: ' + (err.response?.data?.message || err.message)));
+    }
+
+    function patchUpdateProductStatus(status) {
+        const selectedIds = getSelectedProductIds();
+        if (selectedIds.length === 0) {
+            alert('请先选择商品');
+            return;
+        }
+
+        if (!confirm(`确认${status === 'active' ? '启用' : '禁用'}选中的 ${selectedIds.length} 个商品吗？`)) return;
+
+        axios.post(API.products.batchStatus, { ids: selectedIds, status })
+            .then(() => {
+                alert('批量操作成功');
+                fetchProducts(currentPage);
+            })
+            .catch(err => alert('操作失败: ' + (err.response?.data?.message || err.message)));
+    }
+
+    function patchDeleteProducts() {
+        const selectedIds = getSelectedProductIds();
+        if (selectedIds.length === 0) {
+            alert('请先选择商品');
+            return;
+        }
+
+        if (!confirm(`确认删除选中的 ${selectedIds.length} 个商品吗？`)) return;
+
+        axios.post(API.products.batchDelete, { ids: selectedIds })
+            .then(() => {
+                alert('批量删除成功');
+                fetchProducts(currentPage);
+            })
+            .catch(err => alert('操作失败: ' + (err.response?.data?.message || err.message)));
+    }
+
+    function getSelectedProductIds() {
+        return Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.value);
+    }
+
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+
+    function resetProductFilter() { 
+        document.getElementById('product-search').value = '';
+        document.getElementById('product-status').value = '';
+        document.getElementById('product-category').value = '';
+        fetchProducts(1);
+    }
+    
+    function prevProductPage() { 
+        if (currentPage > 1) {
+            fetchProducts(currentPage - 1);
+        }
+    }
+
+    function nextProductPage() { 
+        if (currentPage < totalPages) {
+            fetchProducts(currentPage + 1);
+        }
+    }
+
+    function updatePaginationInfo() {
+        document.getElementById('product-current-page').textContent = currentPage;
+        document.getElementById('product-pagination-info').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+        
+        // 更新按钮状态
+        const prevBtn = document.querySelector('button[onclick="prevProductPage()"]');
+        const nextBtn = document.querySelector('button[onclick="nextProductPage()"]');
+        
+        if (prevBtn) prevBtn.disabled = currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+    }
+</script>
+{% endblock %}

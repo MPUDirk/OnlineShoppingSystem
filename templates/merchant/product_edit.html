@@ -1,0 +1,162 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}商品添加 / 编辑 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="product-edit-title" class="page-title">商品添加 / 编辑</h1>
+            <p class="page-subtitle">基础信息 / 多媒体 / 属性 / 配置选项。</p>
+        </div>
+        <div class="actions">
+            <a class="btn btn-secondary" href="/merchant/products/">返回列表</a>
+            <button class="btn btn-secondary" type="button" onclick="saveProduct(true)">保存为草稿</button>
+            <button class="btn btn-primary" type="button" onclick="saveProduct(false)">发布</button>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card" aria-label="基础信息">
+            <h2>基础信息</h2>
+            <input type="hidden" id="p-id" value="{{ product_id|default:'' }}">
+            <div class="form-group">
+                <label class="form-label" for="p-name">商品名称</label>
+                <input id="p-name" class="form-control" type="text" placeholder="请输入商品名称" aria-label="商品名称输入框">
+            </div>
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="p-price">价格</label>
+                    <input id="p-price" class="form-control" type="number" placeholder="0.00" aria-label="商品价格输入框">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="p-stock">库存</label>
+                    <input id="p-stock" class="form-control" type="number" placeholder="0" aria-label="商品库存输入框">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="p-cat">分类</label>
+                <select id="p-cat" class="form-control" aria-label="商品分类选择">
+                    <option value="electronics">电子产品</option>
+                    <option value="clothing">服装</option>
+                    <option value="books">图书</option>
+                    <option value="home">家居</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card" aria-label="多媒体设置">
+            <h2>多媒体设置</h2>
+            <p class="muted">请输入图片链接地址。</p>
+            <div class="form-group">
+                <label class="form-label" for="p-image">图片链接</label>
+                <input id="p-image" class="form-control" type="text" placeholder="https://example.com/image.jpg" aria-label="商品图片链接输入框">
+            </div>
+            <div class="actions">
+                <input type="file" id="media-upload" style="display: none;" accept="image/*" onchange="handleMediaUpload(this)">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('media-upload').click()">上传图片</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card" aria-label="属性设置">
+            <h2>属性设置</h2>
+            <div class="form-group">
+                <label class="form-label" for="p-brand">品牌</label>
+                <input id="p-brand" class="form-control" type="text" placeholder="例如：Apple" aria-label="品牌输入框">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="detail">商品详情（支持基础 HTML）</label>
+                <textarea id="detail" class="form-control" rows="6" placeholder="输入商品详情，支持分段描述" aria-label="商品详情输入框"></textarea>
+            </div>
+        </div>
+        <div class="card" aria-label="配置选项（SKU）">
+            <h2>配置选项（SKU）</h2>
+            <p class="muted">可配置商品：颜色/尺寸等选项组，生成 SKU 并分别设置价格/图片/库存状态。</p>
+            <div class="actions">
+                <button class="btn btn-secondary" type="button">添加选项组</button>
+                <button class="btn btn-secondary" type="button">生成 SKU</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const API = {
+        products: {
+            save: '/api/merchant/products', // 创建新商品
+            detail: (id) => `/api/merchant/products/${id}` // 获取商品详情 / 更新商品信息 (PUT)
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const productId = document.getElementById('p-id').value;
+        if (productId) {
+            loadProductDetail(productId);
+        }
+    });
+
+    function loadProductDetail(id) {
+        console.log(`Loading product detail for ${id}...`);
+        axios.get(API.products.detail(id))
+            .then(res => {
+                const data = res.data;
+                document.getElementById('p-name').value = data.name || '';
+                document.getElementById('p-price').value = data.price || '';
+                document.getElementById('p-stock').value = data.stock || 0;
+                document.getElementById('p-cat').value = data.category || 'electronics';
+                document.getElementById('p-brand').value = data.brand || '';
+                document.getElementById('p-image').value = data.image_url || '';
+                document.getElementById('detail').value = data.description || '';
+            })
+            .catch(err => console.error('Failed to load product detail:', err));
+    }
+
+    function saveProduct(isDraft) {
+        const data = {
+            id: document.getElementById('p-id').value,
+            name: document.getElementById('p-name').value,
+            price: document.getElementById('p-price').value,
+            stock: document.getElementById('p-stock').value,
+            category: document.getElementById('p-cat').value,
+            brand: document.getElementById('p-brand').value,
+            image_url: document.getElementById('p-image').value,
+            description: document.getElementById('detail').value,
+            is_draft: isDraft
+        };
+        // Use PUT if updating, POST if creating (simplified here to POST or handled by backend)
+        const method = data.id ? 'put' : 'post';
+        const url = data.id ? API.products.detail(data.id) : API.products.save;
+        
+        axios[method](url, data)
+            .then(() => alert(isDraft ? '已保存为草稿' : '发布成功'))
+            .catch(err => alert('操作失败: ' + (err.response?.data?.message || err.message)));
+    }
+
+    function handleMediaUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            axios.post('/api/merchant/upload/image', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            .then(res => {
+                const imageUrl = res.data.url;
+                document.getElementById('p-image').value = imageUrl;
+                alert('图片上传成功');
+            })
+            .catch(err => {
+                console.error('Upload failed', err);
+                alert('图片上传失败 (需后端实现 /api/merchant/upload/image 接口)');
+            });
+        }
+    }
+</script>
+{% endblock %}
