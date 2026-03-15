@@ -1,119 +1,95 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>{% block title %}{% endblock %}</title>
-
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}在线商城{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
 </head>
-<body>
-<header class="header">
-    <div class="container">
-        <h1 class="logo">在线商城</h1>
-        <nav class="nav">
-            <a href="{% url 'index' %}" class="nav-link">首页</a>
-            <a href="{% url 'index' %}#" class="nav-link" onclick="showAllProducts()">商品</a>
 
-            {% if user.is_authenticated %}
-                <span id="cartLink">
-                    <a href="#" class="nav-link" onclick="showPage('cart')">
-                        <div style="width: 20px; height: 20px; position: relative; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 4px;">
-                            <div style="width: 2px; height: 2px; left: 3px; top: 15px; position: absolute; outline: 1px #ECEEF2 solid; outline-offset: -0.5px"></div>
-                            <div style="width: 2px; height: 2px; left: 15px; top: 15px; position: absolute; outline: 1px #ECEEF2 solid; outline-offset: -0.5px"></div>
-                            <div style="width: 16px; height: 10px; left: 2px; top: 2px; position: absolute; outline: 1px #FFFBFB solid; outline-offset: -0.5px"></div>
-                        </div>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">在线商城</h1>
+            <nav class="nav">
+                <a href="/" class="nav-link">首页</a>
+                <a href="/products/" class="nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="43" height="39" viewBox="0 0 43 39" fill="none" style="width: 43px; height: 39px; flex-shrink: 0; vertical-align: middle; margin-right: 4px;">
+                        <path d="M19.7083 35.3113C20.2531 35.5966 20.871 35.7468 21.5 35.7468C22.129 35.7468 22.7469 35.5966 23.2917 35.3113L35.8333 28.8113C36.3775 28.5264 36.8295 28.1166 37.144 27.6232C37.4585 27.1298 37.6244 26.57 37.625 26.0001V13.0001C37.6244 12.4302 37.4585 11.8704 37.144 11.377C36.8295 10.8835 36.3775 10.4738 35.8333 10.1888L23.2917 3.68884C22.7469 3.40359 22.129 3.25342 21.5 3.25342C20.871 3.25342 20.2531 3.40359 19.7083 3.68884L7.16667 10.1888C6.62247 10.4738 6.17046 10.8835 5.85599 11.377C5.54152 11.8704 5.37564 12.4302 5.375 13.0001V26.0001C5.37564 26.57 5.54152 27.1298 5.85599 27.6232C6.17046 28.1166 6.62247 28.5264 7.16667 28.8113L19.7083 35.3113Z" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21.5 35.75V19.5" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M5.89453 11.375L21.4999 19.5L37.1054 11.375" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13.4375 6.93872L29.5625 15.3075" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    商品
+                </a>
+                {% if user.is_authenticated %}
+                    <a href="/cart/" class="nav-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style="width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle; margin-right: 4px;">
+                            <g clip-path="url(#clip0_1_212)">
+                                <path d="M6.66665 18.3333C7.12688 18.3333 7.49998 17.9602 7.49998 17.5C7.49998 17.0398 7.12688 16.6667 6.66665 16.6667C6.20641 16.6667 5.83331 17.0398 5.83331 17.5C5.83331 17.9602 6.20641 18.3333 6.66665 18.3333Z" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M15.8333 18.3333C16.2936 18.3333 16.6667 17.9602 16.6667 17.5C16.6667 17.0398 16.2936 16.6667 15.8333 16.6667C15.3731 16.6667 15 17.0398 15 17.5C15 17.9602 15.3731 18.3333 15.8333 18.3333Z" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M1.70831 1.70834H3.37498L5.59165 12.0583C5.67296 12.4374 5.88387 12.7762 6.18807 13.0166C6.49227 13.2569 6.87073 13.3836 7.25831 13.375H15.4083C15.7876 13.3744 16.1554 13.2444 16.4508 13.0065C16.7463 12.7687 16.9518 12.4371 17.0333 12.0667L18.4083 5.875H4.26665" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+                            </g>
+                            <defs>
+                                <clipPath id="clip0_1_212">
+                                    <rect width="20" height="20" fill="white"/>
+                                </clipPath>
+                            </defs>
+                        </svg>
                         购物车
                     </a>
-                </span>
-                <span id="ordersLink">
-                    <a href="#" class="nav-link" onclick="showPage('orders')">订单</a>
-                </span>
-                <span id="userInfo" class="nav-user">Welcome, {{ user.first_name }} {{ user.last_name }}</span>
-                <form action="{% url 'user:logout' %}" method="post">
-                    {% csrf_token %}
-                    <span id="logoutLink">
-                        <button type="submit" class="nav-link">登出</button>
-                    </span>
-                </form>
-            {% else %}
-                <span id="loginLinks">
-                        <a href="{% url 'user:login' %}" class="nav-link">登录</a>
-                        <a href="{% url 'user:signup' %}" class="nav-link">注册</a>
-                    </span>
+                    <a href="/orders/" class="nav-link">订单</a>
+                    <a href="/account/" class="nav-link">个人中心</a>
+                    <span class="nav-user">欢迎, {{ user.username }}</span>
+                    <a href="/logout/" class="nav-link">退出</a>
+                {% else %}
+                    <a href="/login/" class="nav-link">登录</a>
+                    <a href="/signup/" class="nav-link">注册</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            
+            {% block content %}{% endblock %}
+
+            {% if errors %}
+            
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</span>
+                <h3 class="text-danger">错误信息</h3>
+                <div class="error-list">
+                        {% for k, v in errors.items %}
+                            <p><strong>{{ k }}：</strong></p>
+                            <ul>
+                                {% for err in v %}
+                                    <li>{{ err.message|default:err }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                </div>
+            </div>
+            
             {% endif %}
-        </nav>
-    </div>
-</header>
 
-<main class="main">
-    <div class="container">
-        {% block main %}{% endblock %}
-        {% block content %}{% endblock %}
-
-        <!-- 商品列表 -->
-        <div id="products" class="page">
-            <div class="card">
-                <h2>商品搜索</h2>
-                <form class="search-bar" onsubmit="searchProducts(event)">
-                    <input type="text" class="search-input" id="productSearch" placeholder="搜索商品名称...">
-                    <button type="submit" class="btn btn-primary">搜索</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2 id="categoryTitle">商品列表</h2>
-                    <div>
-                        <span id="productCount">共 0 件商品</span>
-                    </div>
-                </div>
-                <div class="product-grid" id="productGrid"></div>
-            </div>
+            
         </div>
+    </main>
 
-        <!-- 商品详情 -->
-        <div id="productDetail" class="page">
-            <div class="card" id="productDetailContent"></div>
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026MPU在线商城</p>
         </div>
-
-        <!-- 购物车 -->
-        <div id="cart" class="page">
-            <div class="card">
-                <h2>我的购物车</h2>
-                <div id="cartContent"></div>
-            </div>
-        </div>
-
-        <!-- 订单管理 -->
-        <div id="orders" class="page">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2>我的订单</h2>
-                    <div>
-                        <select id="orderStatusFilter" onchange="filterOrders()"
-                                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">全部订单</option>
-                            <option value="pending">待处理</option>
-                            <option value="shipped">已发货</option>
-                            <option value="delivered">已送达</option>
-                            <option value="cancelled">已取消</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="ordersList"></div>
-            </div>
-        </div>
-    </div>
-</main>
-
-<footer class="footer">
-    <div class="container">
-        <p>MPU在线商城</p>
-    </div>
-</footer>
-
-<script src="{% static 'js/base.js' %}"></script>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Global Axios Configuration
+        axios.defaults.xsrfCookieName = 'csrftoken';
+        axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
