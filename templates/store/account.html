@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}个人中心 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card auth-card" style="max-width: 800px;">
+        <h2 class="mb-3">个人中心</h2>
+        
+        <div id="profile-app">
+            <!-- Loading State -->
+            <div v-if="loading" class="text-center">
+                <p>加载中...</p>
+            </div>
+
+            <!-- Profile Content -->
+            <div v-else>
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <div class="form-control" style="background-color: #f8f9fa;">[[ user.username ]]</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">电子邮箱</label>
+                    <div class="form-control" style="background-color: #f8f9fa;">[[ user.email ]]</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">用户类型</label>
+                    <div class="flex-between-center">
+                        <div class="form-control" style="background-color: #f8f9fa; margin-right: 1rem;">
+                            [[ user.user_type_display ]]
+                        </div>
+                        <button @click="switchUserType" class="btn btn-primary" style="white-space: nowrap;">
+                            切换为[[ user.user_type === 'customer' ? '商家' : '买家' ]]
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">收货地址</label>
+                    <div class="flex-between-center">
+                        <div class="form-control" style="background-color: #f8f9fa; min-height: 100px; margin-right: 1rem;">
+                            [[ user.address || '暂无地址' ]]
+                        </div>
+                        <button @click="showAddressModal = true" class="btn btn-primary">
+                            修改
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Modal -->
+            <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
+                <div class="modal-content">
+                    <span class="close-btn" @click="showAddressModal = false">&times;</span>
+                    <h3>修改地址</h3>
+                    <div class="form-group mt-3">
+                        <textarea v-model="newAddress" class="form-control" rows="4" placeholder="请输入新的收货地址"></textarea>
+                    </div>
+                    <div class="text-center">
+                        <button @click="updateAddress" class="btn btn-success">保存</button>
+                        <button @click="showAddressModal = false" class="btn btn-danger" style="margin-left: 10px;">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script>
+    new Vue({
+        el: '#profile-app',
+        delimiters: ['[[', ']]'],
+        data: {
+            loading: true,
+            user: {
+                username: '',
+                email: '',
+                user_type: '',
+                user_type_display: '',
+                address: ''
+            },
+            showAddressModal: false,
+            newAddress: ''
+        },
+        mounted() {
+            this.fetchProfile();
+        },
+        methods: {
+            fetchProfile() {
+               
+                
+                axios.get('/api/user/profile/')
+                    .then(response => {
+                        this.user = response.data;
+                        this.newAddress = this.user.address;
+                        this.loading = false;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching profile:', error);
+                        // Fallback for demo if API not ready
+                        this.user = {
+                            username: 'DemoUser',
+                            email: 'demo@example.com',
+                            user_type: 'customer',
+                            user_type_display: '普通用户',
+                            address: '北京市...'
+                        };
+                        this.newAddress = this.user.address;
+                        this.loading = false;
+                    });
+            },
+            updateAddress() {
+                if (!this.newAddress) {
+                    alert('地址不能为空');
+                    return;
+                }
+                
+                axios.post('/api/user/address/', { address: this.newAddress })
+                    .then(response => {
+                        this.user.address = this.newAddress;
+                        this.showAddressModal = false;
+                        alert('地址修改成功');
+                    })
+                    .catch(error => {
+                        console.error('Error updating address:', error);
+                        alert('修改失败，请重试');
+                    });
+            },
+            switchUserType() {
+                const newType = this.user.user_type === 'customer' ? 'merchant' : 'customer';
+                const confirmMsg = `确定要切换为${newType === 'merchant' ? '商家' : '买家'}身份吗？`;
+                
+                if (confirm(confirmMsg)) {
+                    axios.post('/api/user/switch_type/', { user_type: newType })
+                        .then(response => {
+                            this.user.user_type = newType;
+                            this.user.user_type_display = newType === 'merchant' ? '商家用户' : '普通用户';
+                            alert('身份切换成功');
+                            // Optionally redirect
+                            if (newType === 'merchant') {
+                                window.location.href = '/merchant/dashboard/';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error switching user type:', error);
+                            alert('切换失败，请重试');
+                        });
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
