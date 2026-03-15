@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}用户注册 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 0 auto;">
+    <h2 class="text-center mb-3">用户注册</h2>
+    
+    <div id="registerMessage"></div>
+
+    <form id="signupForm" method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="form-label" for="full_name">全名</label>
+            <input class="form-control" id="full_name" name="full_name" type="text" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="email">电子邮箱</label>
+            <input class="form-control" id="email" name="email" type="email" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="password">密码</label>
+            <input class="form-control" id="password" name="password" type="password" required />
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="confirm_password">确认密码</label>
+            <input class="form-control" id="confirm_password" name="confirm_password" type="password" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="address">配送地址</label>
+            <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="width: 100%;">注册</button>
+    </form>
+
+    <div class="text-center mt-3">
+        <p>已有账户？<a href="/login/">立即登录</a></p>
+    </div>
+</div>
+
+
+<script>
+    function showMessage(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 3000);
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const fullName = document.getElementById('full_name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const address = document.getElementById('address').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (password !== confirmPassword) {
+            showMessage('registerMessage', '两次输入的密码不一致', 'error');
+            return;
+        }
+
+        // 使用统一接口 /api/user/signup/
+        axios.post('/api/user/signup/', {
+            full_name: fullName,
+            email: email,
+            password: password,
+            address: address
+        }, {
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function (response) {
+            // 假设后端返回正确响应
+            if (response.data.success) {
+                showMessage('registerMessage', '注册成功！正在跳转...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/login/';
+                }, 1000);
+            } else {
+                showMessage('registerMessage', '注册失败：' + (response.data.message || '请稍后重试'), 'error');
+            }
+        })
+        .catch(function (error) {
+            console.error('Signup error:', error);
+            showMessage('registerMessage', '注册请求出错，请稍后重试', 'error');
+        });
+    });
+</script>
+{% endblock %}

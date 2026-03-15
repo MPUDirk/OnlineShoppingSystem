@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card" style="background-image: url('https://m.media-amazon.com/images/I/71ow30oSEgL._SX3000_.jpg'); background-size: cover; background-position: center; height: 400px; display: flex; align-items: center; justify-content: center;">
+    <h1 style="color: white; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">欢迎来到在线商城</h1>
+</div>
+
+<div class="card">
+    <div class="search-type-selector" style="margin-bottom: 15px; display: flex; gap: 20px; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <label style="cursor: pointer; display: flex; align-items: center; font-weight: bold; color: #333;">
+            <input type="radio" name="search_type" value="product" checked style="margin-right: 8px;">
+            搜商品
+        </label>
+        <label style="cursor: pointer; display: flex; align-items: center; color: #666;">
+            <input type="radio" name="search_type" value="store" style="margin-right: 8px;">
+            搜店铺
+        </label>
+    </div>
+    <style>
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+        .suggestion-title {
+            font-size: 0.85rem;
+            color: #999;
+            padding: 8px 15px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+    <form method="get" action="/products/" class="search-bar" style="margin-bottom: 0; position: relative;">
+        <input type="text" class="search-input" name="q" placeholder="搜索您想要的商品..." autocomplete="off" id="search-input" />
+        <button type="submit" class="btn btn-primary">搜索</button>
+        <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
+    </form>
+</div>
+
+<div class="home-layout">
+    <!-- 商品分类 -->
+    <aside class="home-sidebar">
+        <div class="card" style="height: 100%">
+            <h2 class="mb-3">商品分类</h2>
+            <div class="category-list">
+                <a href="/products/?category=electronics" class="category-item">
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">电子产品</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                </a>
+                <a href="/products/?category=clothing" class="category-item">
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">服装</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                </a>
+                <a href="/products/?category=books" class="category-item">
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">图书</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                </a>
+                <a href="/products/?category=home" class="category-item">
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">家居</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+
+    <div class="home-content">
+        <!-- Store Search Results -->
+        <div id="store-search-container" class="card" style="margin-bottom: 20px; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>店铺搜索结果</h2>
+                <button id="close-store-search" class="btn btn-secondary" style="background: #eee; color: #333; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">关闭</button>
+            </div>
+            <div id="store-grid" class="product-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                <!-- Store cards will be injected here -->
+            </div>
+             <div id="no-stores-message" class="text-center" style="padding: 2rem; display: none;">
+                <p style="color: #666; font-size: 1.1rem;">未找到相关店铺</p>
+            </div>
+        </div>
+
+        <div class="card" style="height: 100%">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>热门商品</h2>
+                <a href="/products/" class="btn btn-primary">查看全部</a>
+            </div>
+
+            <div id="loading-message" class="text-center" style="padding: 2rem;">
+                <p style="color: #666; font-size: 1.1rem;">正在加载热门商品...</p>
+            </div>
+
+            <div id="product-grid" class="product-grid">
+                
+            </div>
+
+            <div id="no-products-message" class="text-center" style="padding: 2rem; display: none;">
+                <p style="color: #666; font-size: 1.1rem;">暂无热门商品</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>新品上市</h2>
+    </div>
+    <div id="new-arrivals-grid" class="product-grid"></div>
+</div>
+
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const API_URL = '/api/products/featured'; 
+        
+        const productGrid = document.getElementById('product-grid');
+        const newArrivalsGrid = document.getElementById('new-arrivals-grid');
+        const loadingMessage = document.getElementById('loading-message');
+        const noProductsMessage = document.getElementById('no-products-message');
+        
+        // --- SEO Search Features Start ---
+        const searchInput = document.getElementById('search-input');
+        const suggestionsBox = document.getElementById('search-suggestions');
+        
+        // 1. User Preference (Recommended Search) - Mock Data
+        const recommendedKeywords = ['手机', '电脑', '耳机', '连衣裙', '运动鞋'];
+        
+        // 2. Keyword Map (Specific Requirement)
+        const keywordMap = {
+            '眼': ['眼睛', '眼罩', '眼药水'],
+            // Add other mock prefixes if needed
+        };
+        
+        let allProductNames = [];
+
+        // --- Store Search Logic Start ---
+        let currentSearchType = 'product';
+        const searchForm = document.querySelector('.search-bar');
+        const storeContainer = document.getElementById('store-search-container');
+        const storeGrid = document.getElementById('store-grid');
+        const closeStoreBtn = document.getElementById('close-store-search');
+        const noStoresMsg = document.getElementById('no-stores-message');
+        
+        // Toggle Logic
+        document.querySelectorAll('input[name="search_type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentSearchType = e.target.value;
+                if (currentSearchType === 'store') {
+                    searchInput.placeholder = '搜索店铺名称...';
+                    e.target.parentElement.style.fontWeight = 'bold';
+                    e.target.parentElement.style.color = '#333';
+                    document.querySelector('input[value="product"]').parentElement.style.fontWeight = 'normal';
+                    document.querySelector('input[value="product"]').parentElement.style.color = '#666';
+                } else {
+                    searchInput.placeholder = '搜索您想要的商品...';
+                     e.target.parentElement.style.fontWeight = 'bold';
+                    e.target.parentElement.style.color = '#333';
+                    document.querySelector('input[value="store"]').parentElement.style.fontWeight = 'normal';
+                    document.querySelector('input[value="store"]').parentElement.style.color = '#666';
+                }
+                // Clear input and suggestions
+                searchInput.value = '';
+                suggestionsBox.style.display = 'none';
+            });
+        });
+
+        // Form Submit Intercept
+        searchForm.addEventListener('submit', (e) => {
+            if (currentSearchType === 'store') {
+                e.preventDefault();
+                const query = searchInput.value.trim().toLowerCase();
+                performStoreSearch(query);
+            }
+        });
+
+        if (closeStoreBtn) {
+            closeStoreBtn.addEventListener('click', () => {
+                storeContainer.style.display = 'none';
+            });
+        }
+
+        function performStoreSearch(query) {
+            storeContainer.style.display = 'block';
+            storeGrid.innerHTML = '<p class="text-center" style="width:100%; padding:20px;">正在搜索店铺...</p>';
+            noStoresMsg.style.display = 'none';
+
+            axios.get('/api/stores', {
+                params: {
+                    q: query
+                }
+            })
+            .then(function(response) {
+                const results = response.data;
+                storeGrid.innerHTML = '';
+                
+                if (results && results.length > 0) {
+                    results.forEach(store => {
+                        const card = document.createElement('div');
+                        card.className = 'product-card';
+                        card.innerHTML = `
+                            <div style="height: 150px; overflow: hidden;">
+                                <img src="${store.cover || store.logo || store.image_url || 'https://via.placeholder.com/500x300?text=Store'}" alt="${store.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div class="product-info" style="padding: 15px;">
+                                <h3 class="product-title" style="margin-bottom: 5px;">${store.name}</h3>
+                                <div style="color: #f39c12; margin-bottom: 5px;">★ ${store.rating || '5.0'}</div>
+                                <p style="color: #666; font-size: 0.9rem; height: 40px; overflow: hidden;">${store.description || store.intro || ''}</p>
+                                <a href="/stores/${store.id}/" class="btn btn-primary" style="width: 100%; margin-top: 10px; text-align:center; display:block;">进入店铺</a>
+                            </div>
+                        `;
+                        storeGrid.appendChild(card);
+                    });
+                } else {
+                    noStoresMsg.style.display = 'block';
+                }
+            })
+            .catch(function(error) {
+                console.error('Store search failed:', error);
+                storeGrid.innerHTML = '<p class="text-danger text-center" style="width:100%;">搜索失败，请稍后重试</p>';
+            });
+            
+            // Scroll to results
+            storeContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        // --- Store Search Logic End ---
+
+        function showSuggestions(list, title) {
+            if (!list || list.length === 0) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+            
+            let html = '';
+            if (title) {
+                html += `<div class="suggestion-title">${title}</div>`;
+            }
+            
+            list.forEach(item => {
+                // Highlight matching part if it's not a recommendation list
+                html += `<div class="suggestion-item">${item}</div>`;
+            });
+            
+            suggestionsBox.innerHTML = html;
+            suggestionsBox.style.display = 'block';
+            
+            // Add click handlers
+            const items = suggestionsBox.querySelectorAll('.suggestion-item');
+            items.forEach(item => {
+                item.addEventListener('click', function() {
+                    searchInput.value = this.textContent;
+                    suggestionsBox.style.display = 'none';
+                    // Optional: submit form
+                    // searchInput.form.submit();
+                });
+            });
+        }
+
+        function handleInput(val) {
+            val = val.trim();
+            
+            if (currentSearchType === 'store') {
+                if (!val) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+                
+                axios.get('/api/stores', {
+                    params: {
+                        q: val
+                    }
+                })
+                .then(function(response) {
+                    const results = response.data;
+                    const matches = results.map(s => s.name);
+                    
+                    if (matches.length > 0) {
+                        showSuggestions(matches, '店铺建议');
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Store suggestion failed', error);
+                });
+
+                return;
+            }
+
+            if (!val) {
+                showSuggestions(recommendedKeywords, '热门搜索');
+                return;
+            }
+
+            let matches = [];
+            
+            // Check specific keyword map first (Priority)
+            if (keywordMap[val]) {
+                matches = keywordMap[val];
+            } else {
+                // Generic filtering from loaded products + keywords map values
+                // Gather all possible terms
+                let candidates = [...recommendedKeywords];
+                Object.values(keywordMap).forEach(arr => candidates.push(...arr));
+                if (allProductNames.length > 0) candidates.push(...allProductNames);
+                
+                candidates = [...new Set(candidates)]; // Unique
+
+                matches = candidates.filter(name => name.toLowerCase().includes(val.toLowerCase()));
+            }
+
+            if (matches.length > 0) {
+                showSuggestions(matches, '搜索建议');
+            } else {
+                suggestionsBox.style.display = 'none';
+            }
+        }
+
+        searchInput.addEventListener('focus', function() {
+            if (!this.value.trim()) {
+                if (currentSearchType === 'product') {
+                     showSuggestions(recommendedKeywords, '热门搜索');
+                }
+            } else {
+                handleInput(this.value);
+            }
+        });
+
+        searchInput.addEventListener('input', function() {
+            handleInput(this.value);
+        });
+
+        // Hide when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+        // --- SEO Search Features End ---
+       
+        axios.get(API_URL)
+            .then(function(response) {
+                loadingMessage.style.display = 'none';
+                
+                const products = response.data;
+                
+                if (products && products.length > 0) {
+                    // Filter only active products
+                    const activeProducts = products.filter(p => p.status === 'active');
+
+                    if (activeProducts.length === 0) {
+                        noProductsMessage.style.display = 'block';
+                        return;
+                    }
+
+                    // Collect names for search
+                    allProductNames = activeProducts.map(p => p.name);
+                    productGrid.innerHTML = '';
+                    
+                    
+                    const featured = activeProducts.slice(0, 3);
+                    
+                    featured.forEach(function(product) {
+                        productGrid.appendChild(createProductCard(product));
+                    });
+                    
+                    
+                    const newArrivals = activeProducts.slice(-3).reverse();
+                    newArrivalsGrid.innerHTML = '';
+                    newArrivals.forEach(function(product) {
+                        newArrivalsGrid.appendChild(createProductCard(product));
+                    });
+
+                } else {
+                    noProductsMessage.style.display = 'block';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error fetching featured products:', error);
+                loadingMessage.innerHTML = '<p class="text-danger">加载失败，请稍后重试</p>';
+            });
+
+        function createProductCard(product) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+
+            const img = document.createElement('img');
+            img.className = 'product-image';
+            img.src = product.image_url || 'https://via.placeholder.com/250x200?text=%E5%95%86%E5%93%81%E5%9B%BE%E7%89%87';
+            img.alt = product.name || '商品';
+            card.appendChild(img);
+
+            const info = document.createElement('div');
+            info.className = 'product-info';
+
+            const title = document.createElement('h3');
+            title.className = 'product-title';
+            title.textContent = product.name || '未命名商品';
+            info.appendChild(title);
+
+            const price = document.createElement('p');
+            price.className = 'product-price';
+            price.textContent = `¥${product.price || '0.00'}`;
+            info.appendChild(price);
+
+            const desc = document.createElement('p');
+            desc.style.color = '#666';
+            desc.style.fontSize = '0.9rem';
+            desc.style.margin = '0.5rem 0';
+            
+            let descText = product.description || '';
+            if (descText.length > 50) {
+                descText = descText.substring(0, 50) + '...';
+            }
+            desc.textContent = descText;
+            info.appendChild(desc);
+
+            const btnDiv = document.createElement('div');
+            btnDiv.style.marginTop = '1rem';
+            btnDiv.className = 'product-actions'; // Use class from demo1
+
+            const link = document.createElement('a');
+            link.href = `/products/${product.id}/`;
+            link.className = 'btn btn-primary';
+            link.style.width = '100%';
+            link.textContent = '查看详情';
+            btnDiv.appendChild(link);
+
+            info.appendChild(btnDiv);
+            card.appendChild(info);
+            
+            return card;
+        }
+    });
+</script>
+{% endblock %}
+

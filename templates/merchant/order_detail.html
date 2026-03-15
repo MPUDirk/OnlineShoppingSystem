@@ -1,0 +1,285 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}订单详情 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="order-detail-title" class="page-title">订单详情</h1>
+            <p class="page-subtitle">基础信息 / 商品明细 / 操作日志 / 处理操作。</p>
+        </div>
+        <div class="actions">
+            <a class="btn btn-secondary" href="/merchant/orders/">返回列表</a>
+            <button class="btn btn-primary" type="button" onclick="shipOrderFull()">发货</button>
+        </div>
+    </div>
+
+    <div id="order-detail-content">
+        <div class="grid grid-2" style="margin-top: 1rem;">
+            <div class="card" aria-label="订单基础信息">
+                <h2>订单基础信息</h2>
+                <input type="hidden" id="order-id-hidden" value="{{ order_id|default:'' }}">
+                <ul style="padding-left: 1.2rem; margin-top: 0.6rem;" id="order-basic-info">
+                    <li>订单号：<span id="order-id">加载中...</span></li>
+                    <li>下单日期：<span id="order-date">-</span></li>
+                    <li>顾客姓名：<span id="order-customer">-</span></li>
+                    <li>配送地址：<span id="order-address">-</span></li>
+                    <li>总金额：<span id="order-total">-</span></li>
+                    <li>订单状态：<span class="status" id="order-status">-</span></li>
+                </ul>
+            </div>
+            <div class="card" aria-label="处理操作">
+                <h2>处理操作</h2>
+                <p class="muted">支持部分操作。</p>
+                <div class="form-group">
+                    <label class="form-label" for="logistics">物流单号 (仅发货需填)</label>
+                    <input id="logistics" class="form-control" type="text" placeholder="请输入物流单号" aria-label="物流单号输入框">
+                </div>
+                <div class="actions">
+                    <button class="btn btn-secondary" type="button" onclick="batchAction('ticket')">整单出票</button>
+                    <button class="btn btn-primary" type="button" onclick="batchAction('ship')">整单发货</button>
+                     <button class="btn btn-warning" type="button" onclick="batchAction('refund')">整单退款</button>
+                    <button class="btn btn-danger" type="button" onclick="batchAction('cancel')">整单取消</button>
+                </div>
+                <p class="muted" role="status" aria-live="polite" style="margin-top: 0.75rem;" id="order-op-status"></p>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 1rem;" aria-label="商品明细">
+            <h2>商品明细</h2>
+            <div class="table-wrap" style="margin-top: 0.75rem;">
+                <table class="table" aria-label="订单商品明细表格">
+                    <thead>
+                        <tr>
+                            <th scope="col"><input type="checkbox" id="select-all-items" aria-label="全选商品明细"></th>
+                            <th scope="col">商品名称</th>
+                            <th scope="col">订单号</th>
+                            <th scope="col">数量</th>
+                            <th scope="col">单价</th>
+                            <th scope="col">小计</th>
+                            <th scope="col">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="order-items-body">
+                         <tr><td colspan="7" class="muted text-center">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions" style="margin-top: 1rem;">
+                <button class="btn btn-secondary" type="button" onclick="batchAction('ticket')">标记为已出票</button>
+                <button class="btn btn-primary" type="button" onclick="batchAction('ship')">标记为已发货</button>
+                <button class="btn btn-warning" type="button" onclick="batchAction('refund')">标记为已退款</button>
+                <button class="btn btn-danger" type="button" onclick="batchAction('cancel')">标记为已取消</button>
+            </div>
+        </div>
+
+        <div class="grid" style="margin-top: 1rem;">
+            <div class="card" aria-label="操作日志">
+                <h2>操作日志</h2>
+                <ul style="padding-left: 1.2rem; margin-top: 0.6rem;" id="order-logs">
+                    <li>加载中...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const API = {
+        orders: {
+            detail: (id) => `/api/merchant/orders/${id}`,
+            // Full Order Actions
+            ticket: (id) => `/api/merchant/orders/${id}/ticket`,
+            ship: (id) => `/api/merchant/orders/${id}/ship`,
+            refund: (id) => `/api/merchant/orders/${id}/refund`,
+            cancel: (id) => `/api/merchant/orders/${id}/cancel`,
+            // Partial Actions
+            ticketPartial: (id) => `/api/merchant/orders/${id}/ticket/partial`,
+            shipPartial: (id) => `/api/merchant/orders/${id}/ship/partial`,
+            refundPartial: (id) => `/api/merchant/orders/${id}/refund/partial`,
+            cancelPartial: (id) => `/api/merchant/orders/${id}/cancel/partial`
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const orderId = document.getElementById('order-id-hidden').value;
+        if (orderId) {
+            loadOrderDetail(orderId);
+        } else {
+            console.warn('No order ID found in template context');
+            document.getElementById('order-basic-info').innerHTML = '<li class="text-danger">订单 ID 未提供</li>';
+        }
+
+        // Select All Functionality
+        const selectAllCb = document.getElementById('select-all-items');
+        if (selectAllCb) {
+            selectAllCb.addEventListener('change', function() {
+                const isChecked = this.checked;
+                const checkboxes = document.querySelectorAll('#order-items-body input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    if (cb) cb.checked = isChecked;
+                });
+            });
+        }
+    });
+
+    function loadOrderDetail(id) {
+        console.log(`Loading order detail for ${id}...`);
+        axios.get(API.orders.detail(id))
+            .then(res => {
+                const data = res.data;
+                // Basic Infomation
+                document.getElementById('order-id').textContent = data.order_number || data.id;
+                document.getElementById('order-date').textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '-';
+                document.getElementById('order-customer').textContent = data.customer_name || '-';
+                document.getElementById('order-address').textContent = data.shipping_address || '未提供';
+                document.getElementById('order-total').textContent = `¥ ${data.total_amount || 0}`;
+                
+                const statusSpan = document.getElementById('order-status');
+                statusSpan.textContent = data.status_display || data.status;
+                
+                let statusClass = 'info';
+                if (data.status === 'pending') statusClass = 'warn';
+                else if (data.status === 'cancelled') statusClass = 'danger';
+                else if (data.status === 'shipped') statusClass = 'success';
+                else if (data.status === 'ticket_issued') statusClass = 'info';
+                else if (data.status === 'refunded') statusClass = 'secondary';
+                
+                statusSpan.className = `status status-${statusClass}`;
+
+                // Items
+                const tbody = document.getElementById('order-items-body');
+                if (data.items && data.items.length > 0) {
+                    tbody.innerHTML = data.items.map(item => {
+                        const productName = item.product ? item.product.name : (item.product_name || '未知商品');
+                        const productId = item.product ? item.product.id : (item.product_id || '');
+                        const price = item.unit_price || item.price || 0;
+                        const subtotal = item.subtotal || (price * item.quantity).toFixed(2);
+                        
+                        let statusText = '待处理';
+                        let statusClass = 'warn';
+                        
+                        if (item.status === 'ticket_issued' || item.is_ticket_issued) {
+                            statusText = '已出票';
+                            statusClass = 'info';
+                        } else if (item.status === 'shipped' || item.is_shipped) {
+                            statusText = '已发货';
+                            statusClass = 'success';
+                        } else if (item.status === 'refunded' || item.is_refunded) {
+                            statusText = '已退款';
+                            statusClass = 'secondary';
+                        } else if (item.status === 'cancelled' || item.is_cancelled) {
+                            statusText = '已取消';
+                            statusClass = 'danger';
+                        }
+
+                        return `
+                        <tr>
+                            <td><input type="checkbox" value="${item.id}"></td>
+                            <td>
+                                ${productId ? `<a href="/merchant/products/${productId}/edit/" class="link">${productName}</a>` : productName}
+                            </td>
+                            <td>${data.order_number || data.id}</td>
+                            <td>${item.quantity}</td>
+                            <td>¥${price}</td>
+                            <td>¥${subtotal}</td>
+                            <td><span class="status status-${statusClass}">${statusText}</span></td>
+                        </tr>
+                    `}).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="muted text-center">暂无商品明细</td></tr>';
+                }
+
+                // Logs
+                const logsUl = document.getElementById('order-logs');
+                if (data.logs && data.logs.length > 0) {
+                    logsUl.innerHTML = data.logs.map(log => {
+                        const logDate = log.created_at ? new Date(log.created_at).toLocaleString() : '';
+                        return `<li>${logDate} ${log.message}</li>`;
+                    }).join('');
+                } else {
+                    logsUl.innerHTML = '<li>暂无日志</li>';
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load order detail:', err);
+                document.getElementById('order-basic-info').innerHTML = '<li class="text-danger">数据加载失败</li>';
+            });
+    }
+
+    function batchAction(type) {
+        const orderId = document.getElementById('order-id-hidden').value;
+        const logisticsNo = document.getElementById('logistics').value;
+        
+        // Collect selected items
+        const selectedItems = Array.from(document.querySelectorAll('#order-items-body input[type="checkbox"]:checked')).map(cb => cb.value);
+        
+        if (!orderId) return;
+
+        const actionNames = {
+            'ticket': '出票',
+            'ship': '发货',
+            'refund': '退款',
+            'cancel': '取消'
+        };
+        const actionName = actionNames[type] || type;
+
+        // Validation for shipping
+        if (type === 'ship' && !logisticsNo) {
+            alert('发货操作请输入物流单号');
+            return;
+        }
+
+        let promise;
+        let isPartial = false;
+
+        if (selectedItems.length > 0) {
+            // Partial Action
+            if(!confirm(`确认对选中的 ${selectedItems.length} 个商品进行"${actionName}"操作吗？`)) return;
+            
+            let endpoint = API.orders[type + 'Partial'];
+            if (!endpoint) {
+                alert('暂不支持该部分操作');
+                return;
+            }
+            
+            const payload = { item_ids: selectedItems };
+            if (type === 'ship') payload.logistics_no = logisticsNo;
+            
+            promise = axios.post(endpoint(orderId), payload);
+            isPartial = true;
+        } else {
+            // Full Order Action
+            if(!confirm(`未选择商品，确认对**整单**进行"${actionName}"操作吗？`)) return;
+            
+            let endpoint = API.orders[type];
+             if (!endpoint) {
+                alert('暂不支持该操作');
+                return;
+            }
+
+            const payload = {};
+            if (type === 'ship') payload.logistics_no = logisticsNo;
+            
+            promise = axios.post(endpoint(orderId), payload);
+        }
+
+        document.getElementById('order-op-status').textContent = '操作提交中...';
+        
+        promise
+            .then(() => {
+                alert((isPartial ? '部分' : '整单') + actionName + '成功');
+                document.getElementById('order-op-status').textContent = '';
+                loadOrderDetail(orderId);
+            })
+            .catch(err => {
+                const msg = err.response?.data?.message || err.message;
+                alert('操作失败: ' + msg);
+                document.getElementById('order-op-status').textContent = '操作失败: ' + msg;
+            });
+    }
+</script>
+{% endblock %}

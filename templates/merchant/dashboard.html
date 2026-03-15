@@ -1,0 +1,142 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}店铺管理首页 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="dashboard-title" class="page-title">店铺管理首页</h1>
+            <p class="page-subtitle">核心指标与待处理事项概览。</p>
+        </div>
+        <div class="actions" aria-label="快捷操作">
+            <a class="btn btn-primary" href="/merchant/products/add/">新增商品</a>
+            <a class="btn btn-secondary" href="/merchant/orders/">处理订单</a>
+        </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-top: 1rem;">
+        <div class="metric" aria-label="今日订单">
+            <div class="label">今日订单</div>
+            <div class="value" id="dash-today-orders">-</div>
+            <div class="muted">待处理 <span class="pill" id="dash-pending-orders">-</span></div>
+        </div>
+        <div class="metric" aria-label="今日销售额">
+            <div class="label">今日销售额</div>
+            <div class="value" id="dash-today-sales">-</div>
+            <div class="muted">较昨日 <span class="pill" id="dash-sales-growth">-</span></div>
+        </div>
+        <div class="metric" aria-label="库存预警">
+            <div class="label">库存预警</div>
+            <div class="value" id="dash-low-stock">-</div>
+            <div class="muted">需要补货</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card" aria-label="待办">
+            <h2>待办</h2>
+            <ul style="padding-left: 1.2rem; margin-top: 0.6rem;" id="dash-todos">
+                <li>加载中...</li>
+            </ul>
+            <div class="actions">
+                <a class="btn btn-primary" href="/merchant/orders/">去处理</a>
+                <a class="btn btn-secondary" href="/merchant/store/">店铺信息</a>
+            </div>
+        </div>
+        <div class="card" aria-label="通知">
+            <h2>通知</h2>
+            <ul style="padding-left: 1.2rem; margin-top: 0.6rem;" id="dash-notifications">
+                <li>加载中...</li>
+            </ul>
+            <div class="actions">
+                <a class="btn btn-secondary" href="/merchant/orders/">查看订单</a>
+                <a class="btn btn-secondary" href="/merchant/products/">查看商品</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // API 路径占位符配置
+    const API = {
+        dashboard: {
+            stats: '/api/merchant/dashboard/stats', // 获取核心统计数据（今日订单、销售额、库存预警）
+            todos: '/api/merchant/dashboard/todos', // 获取待办事项列表
+            notifications: '/api/merchant/dashboard/notifications' // 获取系统通知列表
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDashboardData();
+    });
+
+    function loadDashboardData() {
+        console.log('Loading dashboard data...');
+        
+        // 1. Stats
+        axios.get(API.dashboard.stats)
+            .then(res => {
+                const stats = res.data;
+                updateStats(stats);
+            })
+            .catch(err => {
+                console.warn('Failed to load stats, using mock data:', err);
+                updateStats({
+                    today_orders: 12,
+                    pending_orders: 5,
+                    today_sales: '2,340.00',
+                    sales_growth: '+12%',
+                    low_stock: 3
+                });
+            });
+
+        // 2. Todos
+        axios.get(API.dashboard.todos)
+            .then(res => {
+                const list = document.getElementById('dash-todos');
+                if (res.data && res.data.length > 0) {
+                    list.innerHTML = res.data.map(item => `<li><span class="status status-${item.type === 'warn' ? 'warn' : 'info'}">待办</span> ${item.text}</li>`).join('');
+                } else {
+                    list.innerHTML = '<li>暂无待办事项</li>';
+                }
+            })
+            .catch(err => {
+                console.warn('Failed to load todos, using mock data:', err);
+                document.getElementById('dash-todos').innerHTML = `
+                    <li><span class="status status-warn">待办</span> 待发货订单 (5)</li>
+                    <li><span class="status status-danger">紧急</span> 补货提醒: 无线耳机</li>
+                    <li><span class="status status-info">提醒</span> 查看本周销售报表</li>
+                `;
+            });
+
+        // 3. Notifications
+        axios.get(API.dashboard.notifications)
+            .then(res => {
+                const list = document.getElementById('dash-notifications');
+                if (res.data && res.data.length > 0) {
+                    list.innerHTML = res.data.map(item => `<li>${item}</li>`).join('');
+                } else {
+                    list.innerHTML = '<li>暂无通知</li>';
+                }
+            })
+            .catch(err => {
+                 console.warn('Failed to load notifications, using mock data:', err);
+                 document.getElementById('dash-notifications').innerHTML = `
+                    <li>系统维护通知: 本周日凌晨 2:00</li>
+                    <li>新功能上线: 批量发货功能现已可用</li>
+                 `;
+            });
+    }
+
+    function updateStats(stats) {
+        document.getElementById('dash-today-orders').textContent = stats.today_orders || 0;
+        document.getElementById('dash-pending-orders').textContent = stats.pending_orders || 0;
+        document.getElementById('dash-today-sales').textContent = `¥ ${stats.today_sales || 0}`;
+        document.getElementById('dash-sales-growth').textContent = stats.sales_growth || '-';
+        document.getElementById('dash-low-stock').textContent = stats.low_stock || 0;
+    }
+</script>
+{% endblock %}

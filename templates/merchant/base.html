@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MPU在线商城 - 商家端{% endblock %}</title>
+    <meta name="description" content="商家端后台：店铺、商品、订单、库存与报表管理。">
+    <link rel="stylesheet" href="{% static 'css/merchant-admin.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="header" role="banner">
+        <div class="container">
+            <div class="logo" aria-label="系统名称">
+                MPU在线商城
+                <span class="badge" aria-label="当前端">商家端</span>
+            </div>
+
+            <nav class="nav" aria-label="顶部导航">
+                <a class="nav-link" href="/merchant/role/">角色</a>
+                <a class="nav-link" href="/merchant/dashboard/">首页</a>
+                <a class="nav-link" href="/merchant/store/">店铺</a>
+                <a class="nav-link" href="/merchant/products/">商品</a>
+                <a class="nav-link" href="/merchant/orders/">订单</a>
+                <a class="nav-link" href="/merchant/inventory/">库存</a>
+                <a class="nav-link" href="/merchant/reports/">报表</a>
+                <a class="nav-link" href="/" aria-label="前往顾客端示例页">顾客端</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main" class="main" role="main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+        <div class="container">
+            <span>MPU在线商城</span>
+            <span class="muted">商家端</span>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Global Axios Configuration
+        axios.defaults.xsrfCookieName = 'csrftoken';
+        axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,200 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}订单列表 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="orders-title" class="page-title">订单列表</h1>
+            <p class="page-subtitle">默认按下单日期倒序；支持状态筛选与批量处理。</p>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" type="button" onclick="batchShipOrders()">批量标记为已发货</button>
+        </div>
+    </div>
+
+    <div class="actions" style="margin-top: 1rem;">
+        <label class="form-label" for="order-filter" style="margin: 0;">订单状态</label>
+        <select id="order-filter" class="form-control" style="max-width: 240px;" aria-label="订单状态筛选" onchange="fetchOrders()">
+            <option value="">全部</option>
+            <option value="pending">待处理</option>
+            <option value="ticket_issued">已出票</option>
+            <option value="partial">部分发货</option>
+            <option value="shipped">已发货</option>
+            <option value="refunded">已退款</option>
+            <option value="cancelled">已取消</option>
+        </select>
+        <button class="btn btn-secondary" type="button" onclick="fetchOrders()">刷新</button>
+    </div>
+
+    <div class="table-wrap" style="margin-top: 1rem;" aria-label="订单表格">
+        <table class="table" aria-label="订单列表表格">
+            <thead>
+                <tr>
+                    <th scope="col"><input type="checkbox" id="check-all-orders" aria-label="全选订单" onchange="toggleOrderSelectAll(this)"></th>
+                    <th scope="col">订单号</th>
+                    <th scope="col">包含商品</th>
+                    <th scope="col">下单日期</th>
+                    <th scope="col">顾客姓名</th>
+                    <th scope="col">总金额</th>
+                    <th scope="col">订单状态</th>
+                    <th scope="col">操作</th>
+                </tr>
+            </thead>
+            <tbody id="order-list-body">
+                <!-- Populated by JS -->
+                 <tr><td colspan="7" class="muted text-center">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="actions" style="justify-content: space-between; margin-top: 1rem;" aria-label="分页">
+        <span class="muted" id="order-pagination-info">第 1 页 / 共 1 页</span>
+        <div class="inline">
+            <button class="btn btn-secondary" type="button" onclick="prevOrderPage()">上一页</button>
+            <span class="pill" id="order-current-page" aria-label="当前页">1</span>
+            <button class="btn btn-secondary" type="button" onclick="nextOrderPage()">下一页</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const API = {
+        orders: {
+            list: '/api/merchant/orders', // 获取订单列表（支持分页与筛选）
+            batchShip: '/api/merchant/orders/batch/ship' // 批量发货接口
+        }
+    };
+
+    let currentPage = 1;
+    let totalPages = 1;
+    const PAGE_SIZE = 10; // 显式定义分页大小，与后端保持一致
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchOrders();
+    });
+
+    function fetchOrders(page) {
+        if (page) currentPage = page;
+        console.log(`Fetching orders for page ${currentPage}...`);
+        
+        const status = document.getElementById('order-filter').value;
+        const params = {
+            page: currentPage,
+            page_size: PAGE_SIZE, // 传递给后端（如果后端支持动态分页大小）
+            status: status
+        };
+
+        axios.get(API.orders.list, { params })
+            .then(res => {
+                const data = res.data;
+                const results = data.results || data.data || [];
+                const count = data.count || data.total || 0;
+                
+                // 优先使用后端返回的总页数，否则自行计算
+                totalPages = data.total_pages || Math.ceil(count / PAGE_SIZE) || 1;
+
+                // Mock items for demonstration if missing (since API is placeholder)
+                results.forEach(order => {
+                    if (!order.items) {
+                        order.items = [
+                            { product_id: 1, product_name: '示例商品A', quantity: 1 },
+                            { product_id: 2, product_name: '示例商品B', quantity: 2 }
+                        ];
+                    }
+                });
+                
+                renderOrderList(results);
+                updatePaginationInfo();
+            })
+            .catch(err => {
+                console.error('Failed to fetch orders:', err);
+                document.getElementById('order-list-body').innerHTML = '<tr><td colspan="7" class="text-danger text-center">数据加载失败</td></tr>';
+            });
+    }
+
+    function renderOrderList(orders) {
+        const tbody = document.getElementById('order-list-body');
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="muted text-center">暂无数据</td></tr>';
+            return;
+        }
+        tbody.innerHTML = orders.map(o => `
+            <tr>
+                <td><input type="checkbox" class="order-checkbox" value="${o.id}"></td>
+                <td>${o.order_number}</td>
+                <td>
+                    ${(o.items || []).map(item => `
+                        <div>
+                            <a href="/merchant/products/${item.product_id || item.id}/edit/" class="link">${item.product_name || item.name || '未知商品'}</a>
+                            <span class="muted">x${item.quantity}</span>
+                        </div>
+                    `).join('') || '<span class="muted">无商品信息</span>'}
+                </td>
+                <td>${new Date(o.created_at).toLocaleString()}</td>
+                <td>${o.customer_name}</td>
+                <td>¥ ${o.total_amount}</td>
+                <td>
+                    <span class="status status-${
+                        o.status === 'pending' ? 'warn' : 
+                        o.status === 'cancelled' ? 'danger' : 
+                        o.status === 'shipped' ? 'success' : 
+                        o.status === 'refunded' ? 'secondary' :
+                        o.status === 'ticket_issued' ? 'info' : 'info'
+                    }">${o.status_display || o.status}</span>
+                </td>
+                <td>
+                    <div class="row-actions">
+                        <a class="link" href="/merchant/orders/${o.id}/">查看详情</a>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function toggleOrderSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+
+    function batchShipOrders() {
+        const selectedIds = Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+        if (selectedIds.length === 0) {
+            alert('请先选择要操作的订单');
+            return;
+        }
+
+        if(confirm(`确认将选中的 ${selectedIds.length} 个订单标记为已发货吗？`)) {
+             axios.post(API.orders.batchShip, { ids: selectedIds })
+                .then(() => { alert('操作成功'); fetchOrders(currentPage); })
+                .catch(err => alert('操作失败: ' + (err.response?.data?.message || err.message)));
+        }
+    }
+
+    function prevOrderPage() {
+        if (currentPage > 1) {
+            fetchOrders(currentPage - 1);
+        }
+    }
+
+    function nextOrderPage() {
+        if (currentPage < totalPages) {
+            fetchOrders(currentPage + 1);
+        }
+    }
+
+    function updatePaginationInfo() {
+        document.getElementById('order-current-page').textContent = currentPage;
+        document.getElementById('order-pagination-info').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+        
+        const prevBtn = document.querySelector('button[onclick="prevOrderPage()"]');
+        const nextBtn = document.querySelector('button[onclick="nextOrderPage()"]');
+        
+        if (prevBtn) prevBtn.disabled = currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+    }
+</script>
+{% endblock %}

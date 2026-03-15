@@ -1,0 +1,32 @@
+{% extends 'merchant/base.html' %}
+
+{% block title %}角色选择 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="page-header">
+        <div>
+            <h1 id="role-title" class="page-title">角色选择</h1>
+            <p class="page-subtitle">点击顶部导航切换不同功能界面。</p>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+        <div class="card" aria-label="选择商家端">
+            <h2>我是商家</h2>
+            <p class="muted">进入商家端后台。</p>
+            <div class="actions">
+                <a class="btn btn-primary" href="/merchant/dashboard/" aria-label="进入商家端后台首页">进入商家端</a>
+                <a class="btn btn-secondary" href="/merchant/store/" aria-label="进入店铺信息页面">店铺信息</a>
+            </div>
+        </div>
+        <div class="card" aria-label="选择顾客端">
+            <h2>我是顾客</h2>
+            <p class="muted">跳转到顾客端页面。</p>
+            <div class="actions">
+                <a class="btn btn-secondary" href="/" aria-label="前往顾客端首页">前往顾客端</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

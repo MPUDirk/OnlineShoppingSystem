@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}用户登录 - 在线商城{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 0 auto;">
+    <h2 class="text-center mb-3">用户登录</h2>
+    
+    <div id="loginMessage"></div>
+
+    <form id="loginForm" method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="form-label" for="username">用户名或邮箱</label>
+            <input class="form-control" id="username" name="username" type="text" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="password">密码</label>
+            <input class="form-control" id="password" name="password" type="password" required />
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="width: 100%;">登录</button>
+    </form>
+
+    <div class="text-center mt-3">
+        <p>还没有账户？<a href="/signup/">立即注册</a></p>
+    </div>
+</div>
+
+
+<script>
+    function showMessage(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 3000);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(a) {
+        a.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // 使用统一接口 /api/user/login/
+        axios.post('/api/user/login/', {
+            username: username,
+            password: password
+        }, {
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function (response) {
+            // 假设后端正确
+            if (response.data.success) {
+                showMessage('loginMessage', '登录成功！正在跳转...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                showMessage('loginMessage', '登录失败：' + (response.data.message || '请检查用户名/邮箱和密码'), 'error');
+            }
+        })
+        .catch(function (error) {
+            console.error('Login error:', error);
+            showMessage('loginMessage', '登录请求出错，请稍后重试', 'error');
+        });
+    });
+</script>
+{% endblock %}
+
