@@ -1,48 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}Product Detail - Online Store{% endblock %}
+{% block title %}{{ product.name }} - Online Store{% endblock %}
 
 {% block content %}
-<div class="card" id="product-detail-container" style="display: none;">
+<div class="card" id="product-detail-container">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
         <div>
-            <img id="product-image" src="https://via.placeholder.com/400x300?text=Product" alt="Product Image" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />
+            <img src="{% if product.thumbnail %}{{ product.thumbnail.url }}{% else %}https://via.placeholder.com/400x300?text=Product{% endif %}" alt="{{ product.name }}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />
         </div>
 
         <div>
-            <h1 id="product-name">Loading...</h1>
-            <p id="product-price" class="product-price" style="font-size: 1.5rem; margin: 1rem 0;">$0.00</p>
+            <h1>{{ product.name }}</h1>
+            <p class="product-price" style="font-size: 1.5rem; margin: 1rem 0;">${{ product.price }}</p>
 
             <div style="margin: 1.5rem 0;">
                 <h3>Description</h3>
-                <p id="product-description" style="color: #666; line-height: 1.6;">No description</p>
+                <p style="color: #666; line-height: 1.6;">{{ product.description|default:"No description" }}</p>
             </div>
 
             <div style="margin: 1.5rem 0;">
                 <h3>Product Details</h3>
                 <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div><strong>Brand:</strong> <span id="product-brand">N/A</span></div>
-                        <div><strong>Category:</strong> <span id="product-category">Uncategorized</span></div>
-                        <div><strong>Stock:</strong> <span id="product-stock">0</span> items</div>
-                        <div><strong>Rating:</strong> <span id="product-rating">N/A</span></div>
+                        <div><strong>Category:</strong> {{ product.category.name|default:"Uncategorized" }}</div>
+                        <div><strong>Product ID:</strong> {{ product.product_id }}</div>
                     </div>
                 </div>
             </div>
 
-            {% if user.is_authenticated %}
+            {% if user.is_authenticated and not is_vendor and not user.is_staff and not user.is_superuser %}
                 <div style="margin-top: 2rem;">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="quantity" class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="quantity" value="1" min="1" style="width: 120px;" />
-                    </div>
-
-                    <div id="stock-action-container">
-                         <button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">Checking stock...</button>
-                    </div>
+                    <form method="post" action="{% url 'shopping:cart_item_create' product.product_id %}" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        {% csrf_token %}
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" style="width: 120px;" />
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <button type="submit" class="btn btn-success">Add to Cart</button>
+                        </div>
+                    </form>
                 </div>
-            {% else %}
+            {% elif not user.is_authenticated %}
                 <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
                     <p style="margin: 0;">Please <a href="{% url 'user:login' %}">login</a> to purchase</p>
                 </div>
@@ -51,214 +50,27 @@
     </div>
 </div>
 
-<div id="loading-message" class="text-center" style="padding: 5rem;">
-    <p style="color: #666; font-size: 1.2rem;">Loading product details...</p>
-</div>
-
-<div id="error-message" class="text-center" style="padding: 5rem; display: none;">
-    <h3 class="text-danger">Failed to load product</h3>
-    <p style="color: #666;">Please try again later or return to the product list</p>
-    <a href="/products/" class="btn btn-primary" style="margin-top: 1rem;">Back to Products</a>
-</div>
-
-<div class="card" id="related-products-container" style="display: none;">
+{% if related_products %}
+<div class="card" style="margin-top: 2rem;">
     <h3>Related Products</h3>
-    <div id="related-products-grid" class="product-grid" style="margin-top: 1rem;">
+    <div class="product-grid" style="margin-top: 1rem;">
+        {% for item in related_products %}
+        <div class="product-card">
+            <img class="product-image" src="{% if item.thumbnail %}{{ item.thumbnail.url }}{% else %}https://via.placeholder.com/250x200?text=Product{% endif %}" alt="{{ item.name }}" />
+            <div class="product-info">
+                <h4 class="product-title">{{ item.name }}</h4>
+                <p class="product-price">${{ item.price }}</p>
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'shopping:product_detail' item.pk %}" class="btn btn-primary" style="width: 100%;">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    <p id="no-related-products" style="color: #666; text-align: center; padding: 2rem; display: none;">No related products</p>
 </div>
+{% endif %}
 
-<!-- 引入 Axios (Base模板已引入) -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 从 URL 路径提取商品 ID (假设路径为 /products/<id>/)
-        const pathParts = window.location.pathname.split('/');
-        // 过滤掉空字符串以处理潜在的尾部斜杠或前导斜杠
-        const segments = pathParts.filter(part => part.length > 0);
-        // 假设 ID 是最后一个片段，如果有尾部斜杠则是倒数第二个片段
-        // 例如 /products/123/ -> 片段可能是 ['products', '123']
-        let productId = null;
-        if (segments.length >= 2 && segments[segments.length - 1] !== 'products') {
-            productId = segments[segments.length - 1];
-        }
-
-        if (!productId) {
-            showError('Invalid product ID');
-            return;
-        }
-
-    
-        const RELATED_API_URL = `/api/products/${productId}/related`; // 相关商品 API 占位符
-
-        const container = document.getElementById('product-detail-container');
-        const loadingMsg = document.getElementById('loading-message');
-        const errorMsg = document.getElementById('error-message');
-        const relatedContainer = document.getElementById('related-products-container');
-
-        // 需要填充的元素
-        const elm = {
-            img: document.getElementById('product-image'),
-            name: document.getElementById('product-name'),
-            price: document.getElementById('product-price'),
-            desc: document.getElementById('product-description'),
-            brand: document.getElementById('product-brand'),
-            category: document.getElementById('product-category'),
-            stock: document.getElementById('product-stock'),
-            rating: document.getElementById('product-rating'),
-            stockAction: document.getElementById('stock-action-container')
-        };
-
-        // /api/products/${productId} API 占位符
-        axios.get(`/api/products/${productId}`)
-            .then(function(response) {
-                const product = response.data;
-                
-                if (!product) {
-                    throw new Error('Product not found');
-                }
-
-                if (product.status !== 'active') {
-                    showError('Product is no longer available');
-                    return;
-                }
-
-                // 更新页面标题
-                document.title = `${product.name || 'Product Detail'} - Online Store`;
-
-                elm.img.src = product.image_url || 'https://via.placeholder.com/400x300?text=Product';
-                elm.img.alt = product.name || 'Product Image';
-                elm.name.textContent = product.name || 'Unnamed Product';
-                elm.price.textContent = `$${product.price || '0.00'}`;
-                elm.desc.textContent = product.description || 'No description';
-                
-                elm.brand.textContent = product.brand || 'N/A';
-                elm.category.textContent = product.category || 'Uncategorized';
-                elm.stock.textContent = product.stock || '0';
-                elm.rating.textContent = product.rating || 'N/A';
-
-                if (elm.stockAction) {
-                    const stockCount = parseInt(product.stock || 0);
-                    if (stockCount > 0) {
-                        elm.stockAction.innerHTML = '<button type="button" id="btn-add-to-cart" class="btn btn-success" style="width: 100%;">Add to Cart</button>';
-                        // 绑定点击事件
-                        document.getElementById('btn-add-to-cart').addEventListener('click', function() {
-                            addToCart(product.id);
-                        });
-                    } else {
-                        elm.stockAction.innerHTML = '<button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">Out of Stock</button>';
-                    }
-                }
-
-                // 显示内容，隐藏加载动画
-                loadingMsg.style.display = 'none';
-                container.style.display = 'block';
-
-                // /api/products/${productId}/related API 占位符
-                fetchRelatedProducts(`/api/products/${productId}/related`);
-            })
-            .catch(function(error) {
-                console.error('Error fetching product details:', error);
-                showError();
-            });
-
-        function addToCart(productId) {
-            const quantity = document.getElementById('quantity').value;
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
-
-            axios.post('/api/cart/add/', {
-                product_id: productId,
-                quantity: parseInt(quantity)
-            }, {
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
-            })
-            .then(function(response) {
-                if (response.data.success) {
-                    alert('Product added to cart!');
-                } else {
-                    alert('Failed: ' + (response.data.message || 'Unknown error'));
-                }
-            })
-            .catch(function(error) {
-                console.error('Add to cart error:', error);
-                alert('Failed to add to cart. Please try again.');
-            });
-        }
-
-        function fetchRelatedProducts(url) {
-            const grid = document.getElementById('related-products-grid');
-            const noData = document.getElementById('no-related-products');
-            
-            axios.get(url)
-                .then(function(response) {
-                    const related = response.data;
-                    
-                    if (related && related.length > 0) {
-                        relatedContainer.style.display = 'block';
-                        grid.innerHTML = ''; // Clear
-
-                        related.forEach(function(item) {
-                            // Create card
-                            const card = document.createElement('div');
-                            card.className = 'product-card';
-
-                            // Image
-                            const img = document.createElement('img');
-                            img.className = 'product-image';
-                            img.src = item.image_url || 'https://via.placeholder.com/250x200?text=%E5%95%86%E5%93%81%E5%9B%BE%E7%89%87';
-                            img.alt = item.name;
-                            card.appendChild(img);
-
-                            // Info
-                            const info = document.createElement('div');
-                            info.className = 'product-info';
-
-                            const title = document.createElement('h4');
-                            title.className = 'product-title';
-                            title.textContent = item.name;
-                            info.appendChild(title);
-
-                            const price = document.createElement('p');
-                            price.className = 'product-price';
-                            price.textContent = `¥${item.price}`;
-                            info.appendChild(price);
-
-                            const btnDiv = document.createElement('div');
-                            btnDiv.style.marginTop = '1rem';
-                            
-                            const link = document.createElement('a');
-                            link.href = `/products/${item.id}/`;
-                            link.className = 'btn btn-primary';
-                            link.style.width = '100%';
-                            link.textContent = 'View Details';
-                            btnDiv.appendChild(link);
-                            
-                            info.appendChild(btnDiv);
-                            card.appendChild(info);
-                            grid.appendChild(card);
-                        });
-                    } else {
-                        relatedContainer.style.display = 'block';
-                        noData.style.display = 'block';
-                    }
-                })
-                .catch(function(err) {
-                    console.log('Related products fetch failed or empty', err);
-                    // Optionally hide related section or show empty
-                    relatedContainer.style.display = 'none';
-                });
-        }
-
-        function showError(msg) {
-            loadingMsg.style.display = 'none';
-            container.style.display = 'none';
-            errorMsg.style.display = 'block';
-            if (msg) {
-                const p = errorMsg.querySelector('p');
-                if (p) p.textContent = msg;
-            }
-        }
-    });
-</script>
+<div style="margin-top: 1.5rem;">
+    <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary">Back to Products</a>
+</div>
 {% endblock %}

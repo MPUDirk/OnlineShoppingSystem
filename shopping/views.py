@@ -1,27 +1,75 @@
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import ListView, CreateView, DeleteView, UpdateView
+from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from .forms import CartItemUpdateForm
+from .forms import CartItemUpdateForm, ProductCreateForm
 from .models import Product, ShoppingCart, CartItem
 
 
-class ProductDetailView(ListView):
+class VendorOrAdminRequiredMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
+    """Allow Vendor group or staff/superuser."""
+    def test_func(self):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        return self.request.user.groups.filter(name='Vendor').exists()
+
+
+class ProductListView(ListView):
     model = Product
     allow_empty = True
     template_name = 'store/product_list.html'
-    paginate_by = 20 # twenty products per page
+    paginate_by = 20
+    context_object_name = 'products'
 
-    def get_context_data(self, *, object_list = ..., **kwargs):
-        context = super().get_context_data(object_list=self.object_list, **kwargs)
+    def get_queryset(self):
+        qs = Product.objects.filter(is_active=True).select_related('category')
+        q = self.request.GET.get('q', '').strip()
+        category = self.request.GET.get('category', '').strip()
+        if q:
+            qs = qs.filter(name__icontains=q)
+        if category:
+            qs = qs.filter(category__name__icontains=category)
+        return qs
 
-        context['page_list'] = context['page_obj'].object_list
-
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['category'] = self.request.GET.get('category', '')
         return context
+
+
+class ProductCreateView(VendorOrAdminRequiredMixin, CreateView):
+    model = Product
+    form_class = ProductCreateForm
+    template_name = 'store/product_add.html'
+    success_url = reverse_lazy('shopping:product_list')
+
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+
+class ProductDetailPageView(DetailView):
+    model = Product
+    template_name = 'store/product_detail.html'
+    context_object_name = 'product'
+
+    def get_queryset(self):
+        return Product.objects.select_related('category')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        product = context['product']
+        related = Product.objects.filter(is_active=True).exclude(pk=product.pk)
+        if product.category:
+            related = related.filter(category=product.category)
+        context['related_products'] = list(related[:6])
+        return context
+
 
 class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
     model = CartItem
