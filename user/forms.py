@@ -77,6 +77,14 @@ class ShippingAddressUpdateForm(forms.ModelForm):
     class Meta:
         model = ShippingAddress
         fields = ('address', 'is_default')
+        widgets = {
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'id': 'id_address',
+                'placeholder': '请输入省市区及详细地址',
+            }),
+        }
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
@@ -99,7 +107,8 @@ class ShippingAddressUpdateForm(forms.ModelForm):
         return is_default
 
     def clean(self):
-        if len(self.changed_data) == 0:
+        # 仅编辑时检查是否有修改；新建时跳过
+        if self.addr is not None and len(self.changed_data) == 0:
             raise forms.ValidationError('No Changed')
         return super().clean()
 

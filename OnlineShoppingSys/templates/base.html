@@ -41,7 +41,10 @@
                     </a>
                     <a href="/orders/" class="nav-link">订单</a>
                     <span class="nav-user">欢迎, {{ user.username }}</span>
-                    <a href="{% url 'user:logout' %}" class="nav-link">退出</a>
+                    <form method="post" action="{% url 'user:logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font: inherit; color: inherit; padding: 0;">退出</button>
+                    </form>
                 {% else %}
                     <a href="{% url 'user:login' %}" class="nav-link">登录</a>
                     <a href="{% url 'user:signup' %}" class="nav-link">注册</a>
