@@ -1,11 +1,9 @@
 from django.db import models
-from django.conf import settings
 from django.utils import timezone
-
 
 class ShippingAddress(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'auth.User',
         on_delete=models.CASCADE,
         related_name='shipping_addresses'
     )

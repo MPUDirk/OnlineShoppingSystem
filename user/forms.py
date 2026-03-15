@@ -1,10 +1,10 @@
-from email.policy import default
-
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.auth.password_validation import validate_password
-from django.core.cache import cache
+
+from shopping.models import ShoppingCart
+from .models import ShippingAddress
 
 
 class LoginForm(AuthenticationForm):
@@ -15,7 +15,7 @@ class LoginForm(AuthenticationForm):
         except User.DoesNotExist:
             username = account_id
 
-        return  username
+        return username
 
 class SignUpForm(forms.ModelForm):
     class Meta:
@@ -54,4 +54,63 @@ class SignUpForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        return User.objects.create_user(**self.cleaned_data)
+        user = User.objects.create_user(**self.cleaned_data)
+        user.save()
+
+        user.groups.add(Group.objects.get(name='Customer'))
+        ShoppingCart.objects.create(customer=user)
+
+        return user
+
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = tuple()
+
+    def save(self, commit = True):
+        self.instance.groups.clear()
+        self.instance.groups.add(Group.objects.get(name='Merchant'))
+        return super().save(commit)
+
+class ShippingAddressUpdateForm(forms.ModelForm):
+    class Meta:
+        model = ShippingAddress
+        fields = ('address', 'is_default')
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        try:
+            self.addr = ShippingAddress.objects.get(pk=kwargs.pop('pk'))
+        except KeyError:
+            self.addr = None
+        super().__init__(*args, **kwargs)
+
+    def clean_address(self):
+        address = self.cleaned_data.get('address')
+        if ShippingAddress.objects.filter(user=self.user, address=address).exists() and 'address' in self.changed_data:
+            raise forms.ValidationError('Address already exists')
+        return address
+
+    def clean_is_default(self):
+        is_default = self.cleaned_data.get('is_default')
+        if is_default:
+            ShippingAddress.objects.filter(user=self.user).update(is_default=False)
+        return is_default
+
+    def clean(self):
+        if len(self.changed_data) == 0:
+            raise forms.ValidationError('No Changed')
+        return super().clean()
+
+    def save(self, commit = True):
+        data = self.cleaned_data
+        if self.addr is not None:
+            instance = self.addr
+            if instance.user != self.user:
+                raise forms.ValidationError('No Permission')
+            instance.address = data.get('address')
+            instance.is_default = data.get('is_default')
+            instance.save()
+            return instance
+        else:
+            return ShippingAddress.objects.create(user=self.user, **data)
