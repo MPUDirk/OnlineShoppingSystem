@@ -57,7 +57,8 @@ class SignUpForm(forms.ModelForm):
         user = User.objects.create_user(**self.cleaned_data)
         user.save()
 
-        user.groups.add(Group.objects.get(name='Customer'))
+        customer_group, _ = Group.objects.get_or_create(name='Customer')
+        user.groups.add(customer_group)
         ShoppingCart.objects.create(customer=user)
 
         return user

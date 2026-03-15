@@ -45,7 +45,7 @@
                 </div>
             {% else %}
                 <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                    <p style="margin: 0;">请先 <a href="/login/">登录</a> 后再购买商品</p>
+                    <p style="margin: 0;">请先 <a href="{% url 'user:login' %}">登录</a> 后再购买商品</p>
                 </div>
             {% endif %}
         </div>
