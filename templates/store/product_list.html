@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %}商品列表 - 在线商城{% endblock %}
+{% block title %}Products - Online Store{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>商品搜索</h2>
+    <h2>Product Search</h2>
     <form method="get" class="search-bar">
-        <input type="text" class="search-input" name="q" placeholder="搜索商品名称..." value="{{ query|default:'' }}" />
-        <button type="submit" class="btn btn-primary">搜索</button>
+        <input type="text" class="search-input" name="q" placeholder="Search products..." value="{{ query|default:'' }}" />
+        <button type="submit" class="btn btn-primary">Search</button>
     </form>
 </div>
 
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>商品列表</h2>
+        <h2>Product List</h2>
         <div>
-            <span id="product-count">正在加载...</span>
+            <span id="product-count">Loading...</span>
         </div>
     </div>
 
@@ -23,11 +23,11 @@
     </div>
 
     <div id="loading-message" class="text-center" style="padding: 2rem;">
-        <p style="color: #666; font-size: 1.1rem;">正在加载商品数据...</p>
+        <p style="color: #666; font-size: 1.1rem;">Loading products...</p>
     </div>
 
     <div id="no-products-message" class="text-center" style="padding: 2rem; display: none;">
-        <p style="color: #666; font-size: 1.1rem;">暂无商品</p>
+        <p style="color: #666; font-size: 1.1rem;">No products found</p>
     </div>
 </div>
 
@@ -56,13 +56,13 @@
                 // Filter only active products
                 const activeProducts = products.filter(p => p.status === 'active');
                 
-                productCount.textContent = `共 ${activeProducts.length} 件商品`;
+                productCount.textContent = `${activeProducts.length} products`;
                 
                
                 productGrid.innerHTML = '';
                 
                 if (activeProducts.length === 0) {
-                    productCount.textContent = '共 0 件商品';
+                    productCount.textContent = '0 products';
                     noProductsMessage.style.display = 'block';
                     return;
                 }
@@ -96,7 +96,7 @@
                     // 价格
                     var priceR = document.createElement('p');
                     priceR.className = 'product-price';
-                    priceR.textContent = '¥' + price;
+                    priceR.textContent = '$' + price;
                     info.appendChild(priceR);
 
                     // 简介
@@ -117,7 +117,7 @@
                     link.href = '/products/' + id + '/';
                     link.className = 'btn btn-primary';
                     link.style.width = '100%';
-                    link.textContent = '查看详情';
+                    link.textContent = 'View Details';
                     btnDiv.appendChild(link);
 
                     info.appendChild(btnDiv);
@@ -134,7 +134,7 @@
         })
         .catch(function(error) {
             console.error('Error fetching products:', error);
-            loadingMessage.innerHTML = '<p class="text-danger">加载失败，请稍后重试</p>';
+            loadingMessage.innerHTML = '<p class="text-danger">Failed to load. Please try again.</p>';
         });
     });
 </script>

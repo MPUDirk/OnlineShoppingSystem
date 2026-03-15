@@ -1,34 +1,34 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}个人中心 - 在线商城{% endblock %}
+{% block title %}Account - Online Store{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>个人中心</h2>
+    <h2>Account</h2>
     <div style="margin-bottom: 1.5rem;">
-        <p><strong>用户名：</strong>{{ user.username }}</p>
-        <p><strong>邮箱：</strong>{{ user.email }}</p>
-        <p><strong>姓名：</strong>{{ user.first_name }} {{ user.last_name }}</p>
-        <p><strong>当前身份：</strong>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+        <p><strong>Role:</strong>
             {% if is_merchant %}
-                <span style="padding: 0.2rem 0.5rem; background: #3498db; color: white; border-radius: 4px;">卖家</span>
+                <span style="padding: 0.2rem 0.5rem; background: #3498db; color: white; border-radius: 4px;">Seller</span>
                 <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
                     {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">切换为买家</button>
+                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Buyer</button>
                 </form>
             {% else %}
-                <span style="padding: 0.2rem 0.5rem; background: #27ae60; color: white; border-radius: 4px;">买家</span>
+                <span style="padding: 0.2rem 0.5rem; background: #27ae60; color: white; border-radius: 4px;">Buyer</span>
                 <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
                     {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">切换为卖家</button>
+                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Seller</button>
                 </form>
             {% endif %}
         </p>
     </div>
 
-    <h3>收货地址</h3>
-    <a href="{% url 'user:shipping_address_create' %}" class="btn btn-primary" style="margin-bottom: 1rem;">新增地址</a>
+    <h3>Shipping Addresses</h3>
+    <a href="{% url 'user:shipping_address_create' %}" class="btn btn-primary" style="margin-bottom: 1rem;">Add Address</a>
 
     {% if shipping_addresses %}
     <ul style="list-style: none; padding: 0;">
@@ -37,21 +37,21 @@
             <div>
                 <span>{{ addr.address }}</span>
                 {% if addr.is_default %}
-                    <span style="margin-left: 0.5rem; padding: 0.1rem 0.4rem; background: #0d6efd; color: white; border-radius: 4px; font-size: 0.85rem;">默认</span>
+                    <span style="margin-left: 0.5rem; padding: 0.1rem 0.4rem; background: #0d6efd; color: white; border-radius: 4px; font-size: 0.85rem;">Default</span>
                 {% endif %}
             </div>
             <div>
-                <a href="{% url 'user:shipping_address_edit' pk=addr.pk %}" class="btn" style="margin-right: 0.5rem;">编辑</a>
-                <form method="POST" action="{% url 'user:shipping_address_delete' pk=addr.pk %}" style="display: inline;" onsubmit="return confirm('确定删除此地址？');">
+                <a href="{% url 'user:shipping_address_edit' pk=addr.pk %}" class="btn" style="margin-right: 0.5rem;">Edit</a>
+                <form method="POST" action="{% url 'user:shipping_address_delete' pk=addr.pk %}" style="display: inline;" onsubmit="return confirm('Delete this address?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn" style="background: #dc3545; color: white;">删除</button>
+                    <button type="submit" class="btn" style="background: #dc3545; color: white;">Delete</button>
                 </form>
             </div>
         </li>
         {% endfor %}
     </ul>
     {% else %}
-    <p style="color: #666;">暂无收货地址，<a href="{% url 'user:shipping_address_create' %}">添加一个</a></p>
+    <p style="color: #666;">No shipping addresses. <a href="{% url 'user:shipping_address_create' %}">Add one</a></p>
     {% endif %}
 </div>
 {% endblock %}

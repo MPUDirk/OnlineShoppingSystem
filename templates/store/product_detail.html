@@ -1,31 +1,31 @@
 {% extends 'base.html' %}
 
-{% block title %}商品详情 - 在线商城{% endblock %}
+{% block title %}Product Detail - Online Store{% endblock %}
 
 {% block content %}
 <div class="card" id="product-detail-container" style="display: none;">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
         <div>
-            <img id="product-image" src="https://via.placeholder.com/400x300?text=%E5%95%86%E5%93%81%E5%9B%BE%E7%89%87" alt="商品图片" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />
+            <img id="product-image" src="https://via.placeholder.com/400x300?text=Product" alt="Product Image" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />
         </div>
 
         <div>
-            <h1 id="product-name">正在加载...</h1>
-            <p id="product-price" class="product-price" style="font-size: 1.5rem; margin: 1rem 0;">¥0.00</p>
+            <h1 id="product-name">Loading...</h1>
+            <p id="product-price" class="product-price" style="font-size: 1.5rem; margin: 1rem 0;">$0.00</p>
 
             <div style="margin: 1.5rem 0;">
-                <h3>商品描述</h3>
-                <p id="product-description" style="color: #666; line-height: 1.6;">暂无描述</p>
+                <h3>Description</h3>
+                <p id="product-description" style="color: #666; line-height: 1.6;">No description</p>
             </div>
 
             <div style="margin: 1.5rem 0;">
-                <h3>商品属性</h3>
+                <h3>Product Details</h3>
                 <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div><strong>品牌:</strong> <span id="product-brand">未指定</span></div>
-                        <div><strong>分类:</strong> <span id="product-category">未分类</span></div>
-                        <div><strong>库存:</strong> <span id="product-stock">0</span> 件</div>
-                        <div><strong>评分:</strong> <span id="product-rating">暂无评分</span></div>
+                        <div><strong>Brand:</strong> <span id="product-brand">N/A</span></div>
+                        <div><strong>Category:</strong> <span id="product-category">Uncategorized</span></div>
+                        <div><strong>Stock:</strong> <span id="product-stock">0</span> items</div>
+                        <div><strong>Rating:</strong> <span id="product-rating">N/A</span></div>
                     </div>
                 </div>
             </div>
@@ -34,18 +34,17 @@
                 <div style="margin-top: 2rem;">
                     {% csrf_token %}
                     <div class="form-group">
-                        <label for="quantity" class="form-label">数量</label>
+                        <label for="quantity" class="form-label">Quantity</label>
                         <input type="number" class="form-control" id="quantity" value="1" min="1" style="width: 120px;" />
                     </div>
 
                     <div id="stock-action-container">
-                         <!-- 根据库存情况插入按钮 -->
-                         <button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">正在检查库存...</button>
+                         <button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">Checking stock...</button>
                     </div>
                 </div>
             {% else %}
                 <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                    <p style="margin: 0;">请先 <a href="{% url 'user:login' %}">登录</a> 后再购买商品</p>
+                    <p style="margin: 0;">Please <a href="{% url 'user:login' %}">login</a> to purchase</p>
                 </div>
             {% endif %}
         </div>
@@ -53,21 +52,20 @@
 </div>
 
 <div id="loading-message" class="text-center" style="padding: 5rem;">
-    <p style="color: #666; font-size: 1.2rem;">正在加载商品详情...</p>
+    <p style="color: #666; font-size: 1.2rem;">Loading product details...</p>
 </div>
 
 <div id="error-message" class="text-center" style="padding: 5rem; display: none;">
-    <h3 class="text-danger">无法加载商品详情</h3>
-    <p style="color: #666;">请稍后重试或返回列表页</p>
-    <a href="/products/" class="btn btn-primary" style="margin-top: 1rem;">返回商品列表</a>
+    <h3 class="text-danger">Failed to load product</h3>
+    <p style="color: #666;">Please try again later or return to the product list</p>
+    <a href="/products/" class="btn btn-primary" style="margin-top: 1rem;">Back to Products</a>
 </div>
 
 <div class="card" id="related-products-container" style="display: none;">
-    <h3>相关产品推荐</h3>
+    <h3>Related Products</h3>
     <div id="related-products-grid" class="product-grid" style="margin-top: 1rem;">
-        <!-- 相关商品将加载到此处 -->
     </div>
-    <p id="no-related-products" style="color: #666; text-align: center; padding: 2rem; display: none;">暂无相关产品</p>
+    <p id="no-related-products" style="color: #666; text-align: center; padding: 2rem; display: none;">No related products</p>
 </div>
 
 <!-- 引入 Axios (Base模板已引入) -->
@@ -85,7 +83,7 @@
         }
 
         if (!productId) {
-            showError('无效的商品ID');
+            showError('Invalid product ID');
             return;
         }
 
@@ -120,36 +118,34 @@
                 }
 
                 if (product.status !== 'active') {
-                    showError('商品已下架');
+                    showError('Product is no longer available');
                     return;
                 }
 
                 // 更新页面标题
-                document.title = `${product.name || '商品详情'} - 在线商城`;
+                document.title = `${product.name || 'Product Detail'} - Online Store`;
 
-                // 填充数据
-                elm.img.src = product.image_url || 'https://via.placeholder.com/400x300?text=%E5%95%86%E5%93%81%E5%9B%BE%E7%89%87';
-                elm.img.alt = product.name || '商品图片';
-                elm.name.textContent = product.name || '未命名商品';
-                elm.price.textContent = `¥${product.price || '0.00'}`;
-                elm.desc.textContent = product.description || '暂无描述';
+                elm.img.src = product.image_url || 'https://via.placeholder.com/400x300?text=Product';
+                elm.img.alt = product.name || 'Product Image';
+                elm.name.textContent = product.name || 'Unnamed Product';
+                elm.price.textContent = `$${product.price || '0.00'}`;
+                elm.desc.textContent = product.description || 'No description';
                 
-                elm.brand.textContent = product.brand || '未指定';
-                elm.category.textContent = product.category || '未分类';
+                elm.brand.textContent = product.brand || 'N/A';
+                elm.category.textContent = product.category || 'Uncategorized';
                 elm.stock.textContent = product.stock || '0';
-                elm.rating.textContent = product.rating || '暂无评分';
+                elm.rating.textContent = product.rating || 'N/A';
 
-                // 更新库存按钮逻辑
                 if (elm.stockAction) {
                     const stockCount = parseInt(product.stock || 0);
                     if (stockCount > 0) {
-                        elm.stockAction.innerHTML = '<button type="button" id="btn-add-to-cart" class="btn btn-success" style="width: 100%;">加入购物车</button>';
+                        elm.stockAction.innerHTML = '<button type="button" id="btn-add-to-cart" class="btn btn-success" style="width: 100%;">Add to Cart</button>';
                         // 绑定点击事件
                         document.getElementById('btn-add-to-cart').addEventListener('click', function() {
                             addToCart(product.id);
                         });
                     } else {
-                        elm.stockAction.innerHTML = '<button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">商品缺货</button>';
+                        elm.stockAction.innerHTML = '<button type="button" class="btn" disabled style="width: 100%; background-color: #ccc;">Out of Stock</button>';
                     }
                 }
 
@@ -179,14 +175,14 @@
             })
             .then(function(response) {
                 if (response.data.success) {
-                    alert('商品已添加到购物车！');
+                    alert('Product added to cart!');
                 } else {
-                    alert('添加失败: ' + (response.data.message || '未知错误'));
+                    alert('Failed: ' + (response.data.message || 'Unknown error'));
                 }
             })
             .catch(function(error) {
                 console.error('Add to cart error:', error);
-                alert('添加失败，请稍后重试');
+                alert('Failed to add to cart. Please try again.');
             });
         }
 
@@ -235,7 +231,7 @@
                             link.href = `/products/${item.id}/`;
                             link.className = 'btn btn-primary';
                             link.style.width = '100%';
-                            link.textContent = '查看详情';
+                            link.textContent = 'View Details';
                             btnDiv.appendChild(link);
                             
                             info.appendChild(btnDiv);

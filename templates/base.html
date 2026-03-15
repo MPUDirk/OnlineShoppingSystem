@@ -1,19 +1,19 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}在线商城{% endblock %}</title>
+    <title>{% block title %}Online Store{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}" />
 </head>
 
 <body>
     <header class="header">
         <div class="container">
-            <h1 class="logo">在线商城</h1>
+            <h1 class="logo">Online Store</h1>
             <nav class="nav">
-                <a href="/" class="nav-link">首页</a>
+                <a href="/" class="nav-link">Home</a>
                 <a href="/products/" class="nav-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="43" height="39" viewBox="0 0 43 39" fill="none" style="width: 43px; height: 39px; flex-shrink: 0; vertical-align: middle; margin-right: 4px;">
                         <path d="M19.7083 35.3113C20.2531 35.5966 20.871 35.7468 21.5 35.7468C22.129 35.7468 22.7469 35.5966 23.2917 35.3113L35.8333 28.8113C36.3775 28.5264 36.8295 28.1166 37.144 27.6232C37.4585 27.1298 37.6244 26.57 37.625 26.0001V13.0001C37.6244 12.4302 37.4585 11.8704 37.144 11.377C36.8295 10.8835 36.3775 10.4738 35.8333 10.1888L23.2917 3.68884C22.7469 3.40359 22.129 3.25342 21.5 3.25342C20.871 3.25342 20.2531 3.40359 19.7083 3.68884L7.16667 10.1888C6.62247 10.4738 6.17046 10.8835 5.85599 11.377C5.54152 11.8704 5.37564 12.4302 5.375 13.0001V26.0001C5.37564 26.57 5.54152 27.1298 5.85599 27.6232C6.17046 28.1166 6.62247 28.5264 7.16667 28.8113L19.7083 35.3113Z" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
@@ -21,7 +21,7 @@
                         <path d="M5.89453 11.375L21.4999 19.5L37.1054 11.375" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M13.4375 6.93872L29.5625 15.3075" stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    商品
+                    Products
                 </a>
                 {% if user.is_authenticated %}
                     <a href="/cart/" class="nav-link">
@@ -37,18 +37,18 @@
                                 </clipPath>
                             </defs>
                         </svg>
-                        购物车
+                        Cart
                     </a>
-                    <a href="/orders/" class="nav-link">订单</a>
-                    <a href="{% url 'user:detail' %}" class="nav-link">个人中心</a>
-                    <span class="nav-user">欢迎, {{ user.username }}</span>
+                    <a href="/orders/" class="nav-link">Orders</a>
+                    <a href="{% url 'user:detail' %}" class="nav-link">Account</a>
+                    <span class="nav-user">Welcome, {{ user.username }}</span>
                     <form method="post" action="{% url 'user:logout' %}" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font: inherit; color: inherit; padding: 0;">退出</button>
+                        <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font: inherit; color: inherit; padding: 0;">Logout</button>
                     </form>
                 {% else %}
-                    <a href="{% url 'user:login' %}" class="nav-link">登录</a>
-                    <a href="{% url 'user:signup' %}" class="nav-link">注册</a>
+                    <a href="{% url 'user:login' %}" class="nav-link">Login</a>
+                    <a href="{% url 'user:signup' %}" class="nav-link">Sign Up</a>
                 {% endif %}
             </nav>
         </div>
@@ -63,7 +63,7 @@
             
             <div class="modal-content" onclick="event.stopPropagation()">
                 <span class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</span>
-                <h3 class="text-danger">错误信息</h3>
+                <h3 class="text-danger">Error</h3>
                 <div class="error-list">
                         {% for k, v in errors.items %}
                             <p><strong>{{ k }}：</strong></p>
@@ -84,7 +84,7 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2026MPU在线商城</p>
+            <p>&copy; 2026 MPU Online Store</p>
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>

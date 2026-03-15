@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %}首页 - 在线商城{% endblock %}
+{% block title %}Home - Online Store{% endblock %}
 
 {% block content %}
 <div class="card" style="background-image: url('https://m.media-amazon.com/images/I/71ow30oSEgL._SX3000_.jpg'); background-size: cover; background-position: center; height: 400px; display: flex; align-items: center; justify-content: center;">
-    <h1 style="color: white; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">欢迎来到在线商城</h1>
+    <h1 style="color: white; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Welcome to Online Store</h1>
 </div>
 
 <div class="card">
     <div class="search-type-selector" style="margin-bottom: 15px; display: flex; gap: 20px; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px;">
         <label style="cursor: pointer; display: flex; align-items: center; font-weight: bold; color: #333;">
             <input type="radio" name="search_type" value="product" checked style="margin-right: 8px;">
-            搜商品
+            Search Products
         </label>
         <label style="cursor: pointer; display: flex; align-items: center; color: #666;">
             <input type="radio" name="search_type" value="store" style="margin-right: 8px;">
-            搜店铺
+            Search Stores
         </label>
     </div>
     <style>
@@ -53,33 +53,32 @@
         }
     </style>
     <form method="get" action="/products/" class="search-bar" style="margin-bottom: 0; position: relative;">
-        <input type="text" class="search-input" name="q" placeholder="搜索您想要的商品..." autocomplete="off" id="search-input" />
-        <button type="submit" class="btn btn-primary">搜索</button>
+        <input type="text" class="search-input" name="q" placeholder="Search for products..." autocomplete="off" id="search-input" />
+        <button type="submit" class="btn btn-primary">Search</button>
         <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
     </form>
 </div>
 
 <div class="home-layout">
-    <!-- 商品分类 -->
     <aside class="home-sidebar">
         <div class="card" style="height: 100%">
-            <h2 class="mb-3">商品分类</h2>
+            <h2 class="mb-3">Categories</h2>
             <div class="category-list">
                 <a href="/products/?category=electronics" class="category-item">
-                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">电子产品</h3>
-                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">Electronics</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">View details</p>
                 </a>
                 <a href="/products/?category=clothing" class="category-item">
-                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">服装</h3>
-                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">Clothing</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">View details</p>
                 </a>
                 <a href="/products/?category=books" class="category-item">
-                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">图书</h3>
-                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">Books</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">View details</p>
                 </a>
                 <a href="/products/?category=home" class="category-item">
-                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">家居</h3>
-                    <p style="color: #666; font-size: 0.85rem; margin: 0;">查看详情</p>
+                    <h3 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">Home</h3>
+                    <p style="color: #666; font-size: 0.85rem; margin: 0;">View details</p>
                 </a>
             </div>
         </div>
@@ -90,25 +89,25 @@
         <!-- Store Search Results -->
         <div id="store-search-container" class="card" style="margin-bottom: 20px; display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>店铺搜索结果</h2>
-                <button id="close-store-search" class="btn btn-secondary" style="background: #eee; color: #333; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">关闭</button>
+                <h2>Store Search Results</h2>
+                <button id="close-store-search" class="btn btn-secondary" style="background: #eee; color: #333; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">Close</button>
             </div>
             <div id="store-grid" class="product-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
                 <!-- Store cards will be injected here -->
             </div>
              <div id="no-stores-message" class="text-center" style="padding: 2rem; display: none;">
-                <p style="color: #666; font-size: 1.1rem;">未找到相关店铺</p>
+                <p style="color: #666; font-size: 1.1rem;">No stores found</p>
             </div>
         </div>
 
         <div class="card" style="height: 100%">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>热门商品</h2>
-                <a href="/products/" class="btn btn-primary">查看全部</a>
+                <h2>Popular Products</h2>
+                <a href="/products/" class="btn btn-primary">View All</a>
             </div>
 
             <div id="loading-message" class="text-center" style="padding: 2rem;">
-                <p style="color: #666; font-size: 1.1rem;">正在加载热门商品...</p>
+                <p style="color: #666; font-size: 1.1rem;">Loading popular products...</p>
             </div>
 
             <div id="product-grid" class="product-grid">
@@ -116,7 +115,7 @@
             </div>
 
             <div id="no-products-message" class="text-center" style="padding: 2rem; display: none;">
-                <p style="color: #666; font-size: 1.1rem;">暂无热门商品</p>
+                <p style="color: #666; font-size: 1.1rem;">No popular products</p>
             </div>
         </div>
     </div>
@@ -124,7 +123,7 @@
 
 <div class="card" style="margin-top: 1rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>新品上市</h2>
+        <h2>New Arrivals</h2>
     </div>
     <div id="new-arrivals-grid" class="product-grid"></div>
 </div>
@@ -169,13 +168,13 @@
             radio.addEventListener('change', (e) => {
                 currentSearchType = e.target.value;
                 if (currentSearchType === 'store') {
-                    searchInput.placeholder = '搜索店铺名称...';
+                    searchInput.placeholder = 'Search store name...';
                     e.target.parentElement.style.fontWeight = 'bold';
                     e.target.parentElement.style.color = '#333';
                     document.querySelector('input[value="product"]').parentElement.style.fontWeight = 'normal';
                     document.querySelector('input[value="product"]').parentElement.style.color = '#666';
                 } else {
-                    searchInput.placeholder = '搜索您想要的商品...';
+                    searchInput.placeholder = 'Search for products...';
                      e.target.parentElement.style.fontWeight = 'bold';
                     e.target.parentElement.style.color = '#333';
                     document.querySelector('input[value="store"]').parentElement.style.fontWeight = 'normal';
@@ -204,7 +203,7 @@
 
         function performStoreSearch(query) {
             storeContainer.style.display = 'block';
-            storeGrid.innerHTML = '<p class="text-center" style="width:100%; padding:20px;">正在搜索店铺...</p>';
+            storeGrid.innerHTML = '<p class="text-center" style="width:100%; padding:20px;">Searching stores...</p>';
             noStoresMsg.style.display = 'none';
 
             axios.get('/api/stores', {
@@ -228,7 +227,7 @@
                                 <h3 class="product-title" style="margin-bottom: 5px;">${store.name}</h3>
                                 <div style="color: #f39c12; margin-bottom: 5px;">★ ${store.rating || '5.0'}</div>
                                 <p style="color: #666; font-size: 0.9rem; height: 40px; overflow: hidden;">${store.description || store.intro || ''}</p>
-                                <a href="/stores/${store.id}/" class="btn btn-primary" style="width: 100%; margin-top: 10px; text-align:center; display:block;">进入店铺</a>
+                                <a href="/stores/${store.id}/" class="btn btn-primary" style="width: 100%; margin-top: 10px; text-align:center; display:block;">View Store</a>
                             </div>
                         `;
                         storeGrid.appendChild(card);
@@ -239,7 +238,7 @@
             })
             .catch(function(error) {
                 console.error('Store search failed:', error);
-                storeGrid.innerHTML = '<p class="text-danger text-center" style="width:100%;">搜索失败，请稍后重试</p>';
+                storeGrid.innerHTML = '<p class="text-danger text-center" style="width:100%;">Search failed. Please try again.</p>';
             });
             
             // Scroll to results

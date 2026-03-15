@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}新增收货地址 - 在线商城{% endblock %}
+{% block title %}Add Shipping Address - Online Store{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 500px; margin: 0 auto;">
-    <h2 class="text-center mb-3">新增收货地址</h2>
+    <h2 class="text-center mb-3">Add Shipping Address</h2>
     <form method="POST">
         {% csrf_token %}
         <div class="form-group">
-            <label for="id_address" class="form-label">详细地址</label>
-            <textarea name="address" class="form-control" id="id_address" rows="4" placeholder="请输入省市区及详细地址" required>{{ form.address.value|default:'' }}</textarea>
+            <label for="id_address" class="form-label">Address</label>
+            <textarea name="address" class="form-control" id="id_address" rows="4" placeholder="Enter full address (street, city, state, zip)" required>{{ form.address.value|default:'' }}</textarea>
             {% if form.address.errors %}
                 <ul class="text-danger" style="margin-top: 0.25rem;">
                     {% for err in form.address.errors %}
@@ -22,13 +22,13 @@
         <div class="form-group">
             <label class="form-label">
                 <input type="checkbox" name="is_default" id="id_is_default" value="1" {% if form.is_default.value %}checked{% endif %}>
-                设为默认地址
+                Set as default address
             </label>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">保存</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Save</button>
     </form>
     <div class="text-center mt-3">
-        <a href="{% url 'user:detail' %}">返回个人中心</a>
+        <a href="{% url 'user:detail' %}">Back to Account</a>
     </div>
 </div>
 {% endblock %}

@@ -20,19 +20,11 @@ class LoginForm(AuthenticationForm):
 class SignUpForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ('full_name', 'username', 'email', 'password')
+        fields = ('first_name', 'last_name', 'username', 'email', 'password')
 
     email = forms.EmailField(required=True)
-    full_name = forms.CharField(max_length=61, required=True)
-
-    def clean_full_name(self):
-        name = self.data['full_name'].split(' ')
-
-        if len(name) != 2:
-            raise forms.ValidationError('Invalid full_name: it only contain first and last name and split by space')
-
-        self.cleaned_data['first_name'] = name[0]
-        self.cleaned_data['last_name'] = name[1]
+    first_name = forms.CharField(max_length=30, required=True, label='First Name')
+    last_name = forms.CharField(max_length=30, required=True, label='Last Name')
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
@@ -49,9 +41,7 @@ class SignUpForm(forms.ModelForm):
         return email
 
     def clean(self):
-        cleaned_data = super().clean()
-        cleaned_data.pop('full_name')
-        return cleaned_data
+        return super().clean()
 
     def save(self, commit=True):
         user = User.objects.create_user(**self.cleaned_data)
@@ -82,7 +72,7 @@ class ShippingAddressUpdateForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 4,
                 'id': 'id_address',
-                'placeholder': '请输入省市区及详细地址',
+                'placeholder': 'Enter full address (street, city, state, zip)',
             }),
         }
 

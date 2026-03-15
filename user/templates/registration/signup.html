@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}User SignUp{% endblock %}
+{% block title %}Sign Up - Online Store{% endblock %}
 
 {% block content %}
-    <!-- 用户注册 -->
     <div id="register">
         <div class="card" style="max-width: 500px; margin: 0 auto;">
-            <h2 class="text-center mb-3">用户注册</h2>
+            <h2 class="text-center mb-3">Sign Up</h2>
             <div id="registerMessage" class="container">
                 <ul id="messages">
                     {% for v in errors.values %}
@@ -17,29 +16,33 @@
             <form id="signup" method="POST">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="regFullName" class="form-label">全名</label>
-                    <input type="text" class="form-control" id="regFullName" name="full_name" value="{{ form.full_name.value|default:'' }}" required>
+                    <label for="regFirstName" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="regFirstName" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="regUsername" class="form-label">用户名</label>
+                    <label for="regLastName" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="regLastName" name="last_name" value="{{ form.last_name.value|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="regUsername" class="form-label">Username</label>
                     <input type="text" class="form-control" id="regUsername" name="username" value="{{ form.username.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="regEmail" class="form-label">电子邮箱</label>
+                    <label for="regEmail" class="form-label">Email</label>
                     <input type="email" class="form-control" id="regEmail" name="email" value="{{ form.email.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="regPassword" class="form-label">密码</label>
+                    <label for="regPassword" class="form-label">Password</label>
                     <input type="password" class="form-control" id="regPassword" name="password" value="{{ form.password.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
-                    <label for="regConfirmPassword" class="form-label">确认密码</label>
+                    <label for="regConfirmPassword" class="form-label">Confirm Password</label>
                     <input type="password" class="form-control" id="regConfirmPassword" name="confirm_password" value="{{ form.password.value|default:'' }}" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">注册</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
             </form>
             <div class="text-center mt-3">
-                <p>已有账户？<a href="{% url 'user:login' %}">立即登录</a></p>
+                <p>Already have an account? <a href="{% url 'user:login' %}">Login</a></p>
             </div>
         </div>
     </div>

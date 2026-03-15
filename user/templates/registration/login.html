@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}User SignIn{% endblock %}
+{% block title %}Login - Online Store{% endblock %}
 
 {% block content %}
-    <!-- 用户登录 -->
     <div id="login">
         <div class="card" style="max-width: 400px; margin: 0 auto;">
-            <h2 class="text-center mb-3">用户登录</h2>
+            <h2 class="text-center mb-3">Login</h2>
             <div id="loginMessage">
                 <ul class="container">
                     {% for v in errors.values %}
@@ -17,18 +16,18 @@
             <form method="POST">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="email" class="form-label">邮箱</label>
+                    <label for="email" class="form-label">Email</label>
                     <input type="text" class="form-control" id="email" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="password" class="form-label">密码</label>
+                    <label for="password" class="form-label">Password</label>
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
             </form>
             <div class="text-center mt-3">
-                <p>还没有账户？<a href="{% url 'user:signup' %}">立即注册</a></p>
+                <p>Don't have an account? <a href="{% url 'user:signup' %}">Sign Up</a></p>
             </div>
         </div>
     </div>
