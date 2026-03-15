@@ -18,23 +18,23 @@
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="regFullName" class="form-label">全名</label>
-                    <input type="text" class="form-control" id="regFullName" name="full_name" value="{{ form.full_name.value }}" required>
+                    <input type="text" class="form-control" id="regFullName" name="full_name" value="{{ form.full_name.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
                     <label for="regUsername" class="form-label">用户名</label>
-                    <input type="text" class="form-control" id="regUsername" name="username" value="{{ form.username.value }}" required>
+                    <input type="text" class="form-control" id="regUsername" name="username" value="{{ form.username.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
                     <label for="regEmail" class="form-label">电子邮箱</label>
-                    <input type="email" class="form-control" id="regEmail" name="email" value="{{ form.email.value }}" required>
+                    <input type="email" class="form-control" id="regEmail" name="email" value="{{ form.email.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
                     <label for="regPassword" class="form-label">密码</label>
-                    <input type="password" class="form-control" id="regPassword" name="password" value="{{ form.password.value }}" required>
+                    <input type="password" class="form-control" id="regPassword" name="password" value="{{ form.password.value|default:'' }}" required>
                 </div>
                 <div class="form-group">
                     <label for="regConfirmPassword" class="form-label">确认密码</label>
-                    <input type="password" class="form-control" id="regConfirmPassword" name="confirm_password" value="{{ form.password.value }}" required>
+                    <input type="password" class="form-control" id="regConfirmPassword" name="confirm_password" value="{{ form.password.value|default:'' }}" required>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">注册</button>
             </form>

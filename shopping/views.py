@@ -1,10 +1,12 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms.models import model_to_dict
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 
+from OnlineShoppingSys.modules import CustomLoginRequiredMixin
+from .forms import CartItemUpdateForm
 from .models import Product, ShoppingCart, CartItem
 
 
@@ -21,10 +23,9 @@ class ProductDetailView(ListView):
 
         return context
 
-class ShoppingCartListView(LoginRequiredMixin, ListView):
+class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
     model = CartItem
     template_name = 'store/cart.html'
-    login_url = 'user:login'
 
     def get_queryset(self):
         cart = ShoppingCart.objects.get(customer_id=self.request.user.id)
@@ -39,13 +40,45 @@ class ShoppingCartListView(LoginRequiredMixin, ListView):
 
         return context
 
-class ProductView(View):
-    def get(self, request, *args, **kwargs):
-        # Retrieve all products
-        products = Product.objects.all()
-        data = [model_to_dict(product, fields=['id', 'name', 'price', 'description', 'is_active', 'category']) for product in products]
-        return JsonResponse({'products': data})
+class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
+    form_class = CartItemUpdateForm
+    template_name = 'item_create.html'
+    success_url = reverse_lazy('shopping:shopping_cart')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context['product'] = get_object_or_404(Product, product_id=self.kwargs['pk'])
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['product_id'] = self.kwargs['pk']
+        kwargs['user'] = self.request.user
+        return kwargs
+
+class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
+    form_class = CartItemUpdateForm
+    template_name = 'item_edit.html'
+    success_url = reverse_lazy('shopping:shopping_cart')
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.cart.customer != self.request.user:
+            raise Http404('Cart Item Not Found')
+        return super().get(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_object(self, queryset = None):
+        return CartItem.objects.get(id=self.kwargs['pk'])
+
+class CartItemDeleteView(CustomLoginRequiredMixin, DeleteView):
+    pass
+
+class ProductView(View):
     def post(self, request, *args, **kwargs):
         # Create a new product
         data = request.POST
@@ -79,39 +112,6 @@ class ProductView(View):
         return JsonResponse({'message': 'Product deleted successfully'})
 
 class ShoppingCartView(View):
-    def get(self, request, *args, **kwargs):
-        # Retrieve the shopping cart for the logged-in user
-        cart, _ = ShoppingCart.objects.get_or_create(customer=request.user)
-        items = cart.items.select_related('product')
-        data = {
-            'cart': model_to_dict(cart, fields=['id', 'created_at', 'updated_at']),
-            'items': [
-                {
-                    'id': item.id,
-                    'product': model_to_dict(item.product, fields=['id', 'name', 'price']),
-                    'quantity': item.quantity,
-                    'subtotal': item.get_subtotal()
-                } for item in items
-            ],
-            'total': cart.get_total()
-        }
-        return JsonResponse(data)
-
-    def post(self, request, *args, **kwargs):
-        # Add a product to the shopping cart
-        data = request.POST
-        product_id = data.get('product_id')
-        quantity = int(data.get('quantity', 1))
-        product = get_object_or_404(Product, id=product_id)
-        cart, _ = ShoppingCart.objects.get_or_create(customer=request.user)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        if not created:
-            cart_item.quantity += quantity
-        else:
-            cart_item.quantity = quantity
-        cart_item.save()
-        return JsonResponse({'message': 'Product added to cart', 'cart_item': model_to_dict(cart_item, fields=['id', 'quantity'])})
-
     def put(self, request, *args, **kwargs):
         # Update the quantity of a product in the shopping cart
         data = request.POST
