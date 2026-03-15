@@ -108,10 +108,8 @@ class SignUpView(CreateView, CustomFormMixin):
 
 
 class OSSLogoutView(View):
-    """支持 GET 和 POST 的登出视图，兼容直接访问 /user/logout/"""
-    def get(self, request):
-        logout(request)
-        return redirect('user:login')
+    """登出仅支持 POST，防止通过链接/图片等方式诱导用户被动登出"""
+    http_method_names = ['post']
 
     def post(self, request):
         logout(request)
