@@ -10,23 +10,26 @@
         <p><strong>Username:</strong> {{ user.username }}</p>
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+        {% if not user.is_staff and not user.is_superuser %}
         <p><strong>Role:</strong>
-            {% if is_merchant %}
-                <span style="padding: 0.2rem 0.5rem; background: #3498db; color: white; border-radius: 4px;">Seller</span>
+            {% if is_vendor %}
+                <span style="padding: 0.2rem 0.5rem; background: #3498db; color: white; border-radius: 4px;">Vendor</span>
                 <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
                     {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Buyer</button>
+                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Customer</button>
                 </form>
             {% else %}
-                <span style="padding: 0.2rem 0.5rem; background: #27ae60; color: white; border-radius: 4px;">Buyer</span>
+                <span style="padding: 0.2rem 0.5rem; background: #27ae60; color: white; border-radius: 4px;">Customer</span>
                 <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
                     {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Seller</button>
+                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Vendor</button>
                 </form>
             {% endif %}
         </p>
+        {% endif %}
     </div>
 
+    {% if not user.is_staff and not user.is_superuser %}
     <h3>Shipping Addresses</h3>
     <a href="{% url 'user:shipping_address_create' %}" class="btn btn-primary" style="margin-bottom: 1rem;">Add Address</a>
 
@@ -52,6 +55,7 @@
     </ul>
     {% else %}
     <p style="color: #666;">No shipping addresses. <a href="{% url 'user:shipping_address_create' %}">Add one</a></p>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

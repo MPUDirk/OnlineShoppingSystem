@@ -28,7 +28,7 @@ class UserDetailView(CustomLoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         context['shipping_addresses'] = ShippingAddress.objects.filter(user=context['user'])
-        context['is_merchant'] = self.request.user.groups.filter(name='Merchant').exists()
+        context['is_vendor'] = self.request.user.groups.filter(name='Vendor').exists()
         return context
 
 
@@ -39,15 +39,15 @@ class RoleSwitchView(CustomLoginRequiredMixin, View):
     def post(self, request):
         user = request.user
         customer_group, _ = Group.objects.get_or_create(name='Customer')
-        merchant_group, _ = Group.objects.get_or_create(name='Merchant')
+        vendor_group, _ = Group.objects.get_or_create(name='Vendor')
 
-        if user.groups.filter(name='Merchant').exists():
+        if user.groups.filter(name='Vendor').exists():
             user.groups.clear()
             user.groups.add(customer_group)
             return redirect('user:detail')
         else:
             user.groups.clear()
-            user.groups.add(merchant_group)
+            user.groups.add(vendor_group)
             # 若项目已配置 /merchant/ 路由，可改为 redirect('/merchant/dashboard/')
             return redirect('user:detail')
 

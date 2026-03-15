@@ -132,17 +132,17 @@
                     });
             },
             switchUserType() {
-                const newType = this.user.user_type === 'customer' ? 'merchant' : 'customer';
-                const confirmMsg = `确定要切换为${newType === 'merchant' ? '商家' : '买家'}身份吗？`;
+                const newType = this.user.user_type === 'customer' ? 'vendor' : 'customer';
+                const confirmMsg = `Switch to ${newType === 'vendor' ? 'Vendor' : 'Customer'}?`;
                 
                 if (confirm(confirmMsg)) {
                     axios.post('/api/user/switch_type/', { user_type: newType })
                         .then(response => {
                             this.user.user_type = newType;
-                            this.user.user_type_display = newType === 'merchant' ? '商家用户' : '普通用户';
+                            this.user.user_type_display = newType === 'vendor' ? 'Vendor' : 'Customer';
                             alert('身份切换成功');
                             // Optionally redirect
-                            if (newType === 'merchant') {
+                            if (newType === 'vendor') {
                                 window.location.href = '/merchant/dashboard/';
                             }
                         })

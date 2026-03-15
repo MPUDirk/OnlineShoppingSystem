@@ -60,7 +60,7 @@ class UserEditForm(forms.ModelForm):
 
     def save(self, commit = True):
         self.instance.groups.clear()
-        self.instance.groups.add(Group.objects.get(name='Merchant'))
+        self.instance.groups.add(Group.objects.get(name='Vendor'))
         return super().save(commit)
 
 class ShippingAddressUpdateForm(forms.ModelForm):

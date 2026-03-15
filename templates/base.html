@@ -24,6 +24,7 @@
                     Products
                 </a>
                 {% if user.is_authenticated %}
+                    {% if not is_vendor and not user.is_staff and not user.is_superuser %}
                     <a href="/cart/" class="nav-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" style="width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle; margin-right: 4px;">
                             <g clip-path="url(#clip0_1_212)">
@@ -39,6 +40,7 @@
                         </svg>
                         Cart
                     </a>
+                    {% endif %}
                     <a href="/orders/" class="nav-link">Orders</a>
                     <a href="{% url 'user:detail' %}" class="nav-link">Account</a>
                     <span class="nav-user">Welcome, {{ user.username }}</span>
