@@ -2,12 +2,12 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from .forms import CartItemUpdateForm, ProductCreateForm
+from .forms import CartItemUpdateForm, ProductCreateForm, ProductUpdateForm
 from .models import Product, ShoppingCart, CartItem
 
 
@@ -50,7 +50,29 @@ class ProductCreateView(VendorOrAdminRequiredMixin, CreateView):
     success_url = reverse_lazy('shopping:product_list')
 
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
         return super().form_valid(form)
+
+
+class ProductEditPermissionMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
+    """Admin can edit any product; Vendor can only edit products they created."""
+    def test_func(self):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return True
+        if not self.request.user.groups.filter(name='Vendor').exists():
+            return False
+        product = self.get_object()
+        return product.created_by_id == self.request.user.id
+
+
+class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
+    model = Product
+    form_class = ProductUpdateForm
+    template_name = 'store/product_edit.html'
+    context_object_name = 'product'
+
+    def get_success_url(self):
+        return reverse('shopping:product_detail', kwargs={'pk': self.object.pk})
 
 
 class ProductDetailPageView(DetailView):
@@ -68,6 +90,16 @@ class ProductDetailPageView(DetailView):
         if product.category:
             related = related.filter(category=product.category)
         context['related_products'] = list(related[:6])
+        # Edit permission: admin can edit all; vendor can only edit own products
+        user = self.request.user
+        if user.is_authenticated:
+            can_edit = (
+                user.is_staff or user.is_superuser or
+                (user.groups.filter(name='Vendor').exists() and product.created_by_id == user.id)
+            )
+        else:
+            can_edit = False
+        context['can_edit'] = can_edit
         return context
 
 

@@ -45,6 +45,15 @@ class Product(models.Model):
     # Enable/disable (A18)
     is_active = models.BooleanField(default=True)
     
+    # Track who added the product (for vendor edit permission)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_products'
+    )
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

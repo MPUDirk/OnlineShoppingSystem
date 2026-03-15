@@ -34,7 +34,7 @@
                 <p class="product-desc" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">
                     {{ product.description|truncatewords:15 }}
                 </p>
-                <div style="margin-top: 1rem;">
+                <div class="product-actions">
                     <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-primary" style="width: 100%;">View Details</a>
                 </div>
             </div>
