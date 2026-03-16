@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
@@ -31,7 +32,7 @@ class ProductListView(ListView):
         q = self.request.GET.get('q', '').strip()
         category = self.request.GET.get('category', '').strip()
         if q:
-            qs = qs.filter(name__icontains=q)
+            qs = qs.filter(Q(name__icontains=q) | Q(product_id__icontains=q))
         if category:
             qs = qs.filter(category__name__icontains=category)
         return qs

@@ -7,7 +7,7 @@
 <div class="card">
     <h2>Product Search</h2>
     <form method="get" action="{% url 'shopping:product_list' %}" class="search-bar">
-        <input type="text" class="search-input" name="q" placeholder="Search products..." value="{{ query }}" />
+        <input type="text" class="search-input" name="q" placeholder="Search by name or product ID..." value="{{ query }}" />
         <input type="hidden" name="category" value="{{ category }}" />
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
