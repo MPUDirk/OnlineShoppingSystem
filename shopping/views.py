@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, Http404
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView
@@ -135,6 +135,19 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
         kwargs['product_id'] = self.kwargs['pk']
         kwargs['user'] = self.request.user
         return kwargs
+
+    def form_valid(self, form):
+        cart = ShoppingCart.objects.get(customer=self.request.user)
+        product = get_object_or_404(Product, product_id=self.kwargs['pk'])
+        quantity = form.cleaned_data['quantity']
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart, product=product,
+            defaults={'quantity': quantity}
+        )
+        if not created:
+            cart_item.quantity += quantity
+            cart_item.save()
+        return redirect(self.success_url)
 
 class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
     form_class = CartItemUpdateForm
