@@ -106,18 +106,17 @@ class ProductDetailPageView(DetailView):
 class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
     model = CartItem
     template_name = 'store/cart.html'
+    context_object_name = 'cart_items'
 
     def get_queryset(self):
-        cart = ShoppingCart.objects.get(customer_id=self.request.user.id)
-        return CartItem.objects.filter(cart_id=cart.id)
+        cart, _ = ShoppingCart.objects.get_or_create(customer=self.request.user)
+        return CartItem.objects.filter(cart=cart).select_related('product')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        cart_items = self.get_queryset()
-        map_products = {item.id: Product.objects.get(id=item.product_id) for item in cart_items}
-        context['products'] = map_products
-
+        cart_items = context['cart_items']
+        cart = ShoppingCart.objects.filter(customer=self.request.user).first()
+        context['cart_total'] = cart.get_total() if cart else 0
         return context
 
 class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
@@ -169,7 +168,12 @@ class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
         return CartItem.objects.get(id=self.kwargs['pk'])
 
 class CartItemDeleteView(CustomLoginRequiredMixin, DeleteView):
-    pass
+    model = CartItem
+    success_url = reverse_lazy('shopping:shopping_cart')
+    http_method_names = ['post']
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(CartItem, pk=self.kwargs['pk'], cart__customer=self.request.user)
 
 class ProductView(View):
     def post(self, request, *args, **kwargs):

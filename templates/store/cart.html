@@ -12,11 +12,17 @@
             border-bottom: 1px solid #eee;
         }
         .cart-item-image {
-            width: 80px; 
-            height: 80px; 
-            margin-right: 1rem; 
-            flex-shrink: 0; 
+            width: 80px;
+            height: 80px;
+            margin-right: 1rem;
+            flex-shrink: 0;
             background: #f0f0f0;
+            overflow: hidden;
+        }
+        .cart-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .cart-item-info {
             flex: 1;
@@ -27,164 +33,63 @@
             margin-left: 1rem;
         }
         @media (max-width: 600px) {
-             .cart-item {
-                 flex-wrap: wrap;
-             }
-             .cart-item-image {
-                 width: 60px;
-                 height: 60px;
-             }
-             .cart-item-price {
-                 width: 100%;
-                 text-align: right;
-                 margin-top: 0.5rem;
-             }
+            .cart-item {
+                flex-wrap: wrap;
+            }
+            .cart-item-image {
+                width: 60px;
+                height: 60px;
+            }
+            .cart-item-price {
+                width: 100%;
+                text-align: right;
+                margin-top: 0.5rem;
+            }
         }
     </style>
     <h2>My Cart</h2>
-    <div id="cart-loading" class="text-center" style="padding: 3rem;">
-        <p style="color: #666; font-size: 1.1rem;">Loading cart...</p>
+
+    {% if cart_items %}
+    <div id="cart-content">
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <div class="cart-item-image">
+                <img src="{% if item.product.thumbnail %}{{ item.product.thumbnail.url }}{% else %}https://via.placeholder.com/80?text=No+Image{% endif %}" alt="{{ item.product.name }}" />
+            </div>
+            <div class="cart-item-info">
+                <h4><a href="{% url 'shopping:product_detail' item.product.pk %}" style="text-decoration: none; color: #2c3e50;">{{ item.product.name }}</a></h4>
+                <p style="color: #666; font-size: 0.9rem;">{{ item.product.description|truncatewords:15 }}</p>
+                <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <form method="post" action="{% url 'shopping:cart_item_edit' item.pk %}" style="display: flex; align-items: center; gap: 0.5rem;">
+                        {% csrf_token %}
+                        <label>Qty:</label>
+                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" onchange="this.form.submit()" />
+                    </form>
+                    <form method="post" action="{% url 'shopping:cart_item_delete' item.pk %}" style="display: inline;" onsubmit="return confirm('Remove this item?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.9rem;">Remove</button>
+                    </form>
+                </div>
+            </div>
+            <div class="cart-item-price">${{ item.get_subtotal }} <span style="font-weight: normal; font-size: 0.9rem; color: #666;">(${{ item.product.price }} × {{ item.quantity }})</span></div>
+        </div>
+        {% endfor %}
     </div>
 
-    <div id="cart-content" style="display: none;">
-    </div>
-
-    <div id="cart-empty" class="text-center" style="padding: 3rem; display: none;">
-        <p style="color: #666; font-size: 1.1rem; margin-bottom: 1rem;">Your cart is empty</p>
-        <a href="/products/" class="btn btn-primary">Go Shopping</a>
-    </div>
-
-    <div id="cart-footer" style="display: none;">
+    <div id="cart-footer" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee;">
         <div class="cart-total">
-            <strong>Total: $<span id="cart-total-price">0.00</span></strong>
+            <strong>Total: $<span id="cart-total-price">{{ cart_total }}</span></strong>
         </div>
-
         <div style="text-align: right; margin-top: 1rem;">
-            <button onclick="checkout()" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">Checkout</button>
+            <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary" style="margin-right: 0.5rem;">Continue Shopping</a>
+            <a href="/orders/" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">Checkout</a>
         </div>
     </div>
+    {% else %}
+    <div id="cart-empty" class="text-center" style="padding: 3rem;">
+        <p style="color: #666; font-size: 1.1rem; margin-bottom: 1rem;">Your cart is empty</p>
+        <a href="{% url 'shopping:product_list' %}" class="btn btn-primary">Go Shopping</a>
+    </div>
+    {% endif %}
 </div>
-
-<!-- 引入 Axios (Base模板已引入) -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        fetchCart();
-    });
-
-    function fetchCart() {
-        const loading = document.getElementById('cart-loading');
-        const content = document.getElementById('cart-content');
-        const empty = document.getElementById('cart-empty');
-        const footer = document.getElementById('cart-footer');
-        const totalPriceEl = document.getElementById('cart-total-price');
-//'/api/cart/'占位
-        axios.get('/api/cart/')
-            .then(function(response) {
-                const cart = response.data;
-                const items = cart.items || [];
-
-                loading.style.display = 'none';
-
-                if (items.length === 0) {
-                    empty.style.display = 'block';
-                    content.style.display = 'none';
-                    footer.style.display = 'none';
-                } else {
-                    empty.style.display = 'none';
-                    content.style.display = 'block';
-                    footer.style.display = 'block';
-                    
-                    totalPriceEl.textContent = cart.total_price || '0.00';
-                    renderCartItems(items);
-                }
-            })
-            .catch(function(error) {
-                console.error('Error fetching cart:', error);
-                loading.innerHTML = '<p class="text-danger">Failed to load cart. Please refresh.</p>';
-            });
-    }
-
-    function renderCartItems(items) {
-        const container = document.getElementById('cart-content');
-        container.innerHTML = '';
-
-        items.forEach(function(item) {
-            const div = document.createElement('div');
-            div.className = 'cart-item';
-            div.innerHTML = `
-                <div class="cart-item-image">
-                    <img src="${item.product.image_url || 'https://via.placeholder.com/80?text=No+Image'}" alt="${item.product.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
-                </div>
-                <div class="cart-item-info">
-                    <h4><a href="/products/${item.product.id}/" style="text-decoration: none; color: #2c3e50;">${item.product.name}</a></h4>
-                    <p style="color: #666; font-size: 0.9rem;">${(item.product.description || '').substring(0, 50)}</p>
-                    <div style="margin-top: 0.5rem;">
-                        <label style="margin-right: 0.5rem;">Qty:</label>
-                        <input type="number" value="${item.quantity}" min="1" 
-                               onchange="updateQuantity(${item.id}, this.value)"
-                               style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" />
-                        <button onclick="removeItem(${item.id})" class="btn btn-danger" style="margin-left: 1rem; padding: 0.25rem 0.5rem; font-size: 0.9rem;">Remove</button>
-                    </div>
-                </div>
-                <div class="cart-item-price">$${item.product.price}</div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    function updateQuantity(itemId, newQuantity) {
-        if (newQuantity < 1) return;
-        
-        axios.post('/api/cart/update/', {
-            item_id: itemId,
-            quantity: parseInt(newQuantity)
-        })
-        .then(function(response) {
-            if (response.data.success) {
-                fetchCart(); // 重新加载购物车
-            } else {
-                alert('Update failed: ' + (response.data.message || 'Unknown error'));
-            }
-        })
-        .catch(function(error) {
-            console.error('Update cart error:', error);
-            alert('Update failed. Please try again.');
-        });
-    }
-
-    function removeItem(itemId) {
-        if (!confirm('Remove this item?')) return;
-
-        axios.post('/api/cart/remove/', {
-            item_id: itemId
-        })
-        .then(function(response) {
-            if (response.data.success) {
-                fetchCart(); // 重新加载购物车
-            } else {
-                alert('Remove failed: ' + (response.data.message || 'Unknown error'));
-            }
-        })
-        .catch(function(error) {
-            console.error('Remove item error:', error);
-            alert('Remove failed. Please try again.');
-        });
-    }
-
-    function checkout() {
-        axios.post('/api/cart/checkout/', {})
-        .then(function(response) {
-            if (response.data.success) {
-                alert('Checkout successful! Order #: ' + response.data.order_number);
-                window.location.href = '/orders/';
-            } else {
-                alert('Checkout failed: ' + (response.data.message || 'Unknown error'));
-            }
-        })
-        .catch(function(error) {
-             console.error('Checkout error:', error);
-             alert('Checkout request failed');
-        });
-    }
-</script>
 {% endblock %}
