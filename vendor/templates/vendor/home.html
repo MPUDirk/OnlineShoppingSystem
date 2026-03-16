@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}My Products - Vendor{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Product Management</h2>
+    <p style="color: #666; margin-bottom: 1rem;">View and manage your products, including inactive/off-shelf items.</p>
+
+    <form method="get" action="{% url 'vendor:home' %}" class="search-bar" style="margin-bottom: 1.5rem;">
+        <input type="text" class="search-input" name="q" placeholder="Search by name or product ID..." value="{{ query }}" />
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <a href="{% url 'vendor:product_add' %}" class="btn btn-primary">Add Product</a>
+        <span style="color: #666;">{{ page_obj.paginator.count }} product(s)</span>
+    </div>
+
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card" style="{% if not product.is_active %}opacity: 0.85; border: 1px solid #ddd;{% endif %}">
+            <img class="product-image" src="{% if product.thumbnail %}{{ product.thumbnail.url }}{% else %}https://via.placeholder.com/250x200?text=No+Image{% endif %}" alt="{{ product.name }}" />
+            <div class="product-info">
+                <h3 class="product-title">{{ product.name }}{% if not product.is_active %} <span style="font-size: 0.75rem; padding: 0.15rem 0.4rem; background: #999; color: white; border-radius: 4px;">Off-shelf</span>{% endif %}</h3>
+                <p class="product-price">${{ product.price }}</p>
+                <p style="color: #999; font-size: 0.85rem;">ID: {{ product.product_id }}</p>
+                <p class="product-desc" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">
+                    {{ product.description|truncatewords:15 }}
+                </p>
+                <div class="product-actions">
+                    <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;">View</a>
+                    <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-primary" style="width: 100%;">Edit</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center" style="grid-column: 1/-1; color: #666; padding: 2rem;">You haven't added any products yet. <a href="{% url 'vendor:product_add' %}">Add your first product</a></p>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="pagination" style="margin-top: 2rem; display: flex; justify-content: center; gap: 0.5rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="btn btn-secondary">Previous</a>
+        {% endif %}
+        <span style="align-self: center;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="btn btn-secondary">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
