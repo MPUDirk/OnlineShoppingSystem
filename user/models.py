@@ -24,13 +24,15 @@ class Wallet(models.Model):
 
 
 class Transaction(models.Model):
-    """Transaction record for deposit/withdraw ledger."""
+    """Transaction record for deposit/withdraw/purchase ledger."""
     DEPOSIT = 'deposit'
     WITHDRAW = 'withdraw'
+    PURCHASE = 'purchase'
 
     TYPE_CHOICES = [
         (DEPOSIT, 'Deposit'),
         (WITHDRAW, 'Withdraw'),
+        (PURCHASE, 'Purchase'),
     ]
 
     user = models.ForeignKey(

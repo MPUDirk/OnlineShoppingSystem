@@ -44,7 +44,9 @@
                         Cart
                     </a>
                     {% endif %}
-                    <a href="/orders/" class="nav-link">Orders</a>
+                    {% if not is_vendor and not user.is_staff and not user.is_superuser %}
+                    <a href="{% url 'shopping:order_list' %}" class="nav-link">Orders</a>
+                    {% endif %}
                     <a href="{% url 'user:detail' %}" class="nav-link">Account</a>
                     <span class="nav-user">Welcome, {{ user.username }}</span>
                     <form method="post" action="{% url 'user:logout' %}" style="display: inline;">

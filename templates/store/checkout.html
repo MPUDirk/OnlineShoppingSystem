@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - Online Store{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Checkout</h2>
+
+    {% if not cart_items %}
+    <p style="color: #666;">Your cart is empty. <a href="{% url 'shopping:product_list' %}">Go shopping</a></p>
+    {% elif not form.shipping_address.field.queryset %}
+    <p style="color: #dc3545;">You need a shipping address to checkout. <a href="{% url 'user:shipping_address_create' %}">Add address</a></p>
+    {% elif wallet.balance < cart_total %}
+    <p style="color: #dc3545;">Insufficient balance (${{ wallet.balance }}). Total: ${{ cart_total }}. <a href="{% url 'user:wallet_deposit' %}">Deposit</a></p>
+    {% else %}
+    <p style="margin-bottom: 1rem;">Balance: ${{ wallet.balance }} | Total: ${{ cart_total }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for item in cart_items %}
+        <input type="hidden" name="items" value="{{ item.pk }}" />
+        {% endfor %}
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label">Shipping Address</label>
+            {{ form.shipping_address }}
+            {% if form.shipping_address.errors %}
+            <div class="text-danger">{{ form.shipping_address.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <h3>Order Summary</h3>
+            <ul style="list-style: none; padding: 0;">
+                {% for item in cart_items %}
+                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</li>
+                {% endfor %}
+            </ul>
+            <p style="font-weight: bold; margin-top: 1rem;">Total: ${{ cart_total }}</p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-success">Place Order</button>
+            <a href="{% url 'shopping:shopping_cart' %}" class="btn btn-secondary">Back to Cart</a>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

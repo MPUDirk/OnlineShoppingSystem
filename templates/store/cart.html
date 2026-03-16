@@ -50,9 +50,13 @@
     <h2>My Cart</h2>
 
     {% if cart_items %}
+    <form method="get" action="{% url 'shopping:checkout' %}" id="cart-form">
     <div id="cart-content">
         {% for item in cart_items %}
         <div class="cart-item">
+            <label style="display: flex; align-items: center; margin-right: 0.75rem; cursor: pointer; flex-shrink: 0;">
+                <input type="checkbox" name="items" value="{{ item.pk }}" checked style="width: 1.25rem; height: 1.25rem;" />
+            </label>
             <div class="cart-item-image">
                 <img src="{% if item.product.thumbnail %}{{ item.product.thumbnail.url }}{% else %}https://via.placeholder.com/80?text=No+Image{% endif %}" alt="{{ item.product.name }}" />
             </div>
@@ -79,12 +83,23 @@
     <div id="cart-footer" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee;">
         <div class="cart-total">
             <strong>Total: $<span id="cart-total-price">{{ cart_total }}</span></strong>
+            <span style="font-size: 0.9rem; color: #666; margin-left: 0.5rem;">(Select items to checkout)</span>
         </div>
         <div style="text-align: right; margin-top: 1rem;">
             <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary" style="margin-right: 0.5rem;">Continue Shopping</a>
-            <a href="/orders/" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">Checkout</a>
+            <button type="submit" form="cart-form" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">Checkout Selected</button>
         </div>
     </div>
+    </form>
+    <script>
+    document.getElementById('cart-form').addEventListener('submit', function(e) {
+        var checked = document.querySelectorAll('#cart-form input[name="items"]:checked');
+        if (checked.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one item to checkout.');
+        }
+    });
+    </script>
     {% else %}
     <div id="cart-empty" class="text-center" style="padding: 3rem;">
         <p style="color: #666; font-size: 1.1rem; margin-bottom: 1rem;">Your cart is empty</p>

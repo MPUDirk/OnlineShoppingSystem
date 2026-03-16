@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}My Orders - Online Store{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>My Orders</h2>
+    {% if orders %}
+    <ul style="list-style: none; padding: 0;">
+        {% for order in orders %}
+        <li style="padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #0d6efd;">
+            <a href="{% url 'shopping:order_detail' order.pk %}" style="text-decoration: none; color: inherit; display: block;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <strong>#{{ order.order_number }}</strong>
+                        <span style="margin-left: 1rem; color: #666;">{{ order.purchase_date|date:"Y-m-d H:i" }}</span>
+                    </div>
+                    <div>
+                        <strong>${{ order.total_amount }}</strong>
+                        <span style="margin-left: 1rem; padding: 0.2rem 0.5rem; background: #e9ecef; border-radius: 4px; font-size: 0.9rem;">{{ order.get_status_display }}</span>
+                    </div>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if page_obj.has_other_pages %}
+    <nav style="margin-top: 2rem; display: flex; justify-content: center; gap: 0.5rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">Previous</a>
+        {% endif %}
+        <span style="align-self: center;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <p style="color: #666; padding: 2rem;">No orders yet. <a href="{% url 'shopping:product_list' %}">Start shopping</a></p>
+    {% endif %}
+</div>
+{% endblock %}

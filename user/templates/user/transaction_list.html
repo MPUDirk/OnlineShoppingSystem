@@ -21,7 +21,7 @@
             {% for t in transactions %}
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 0.75rem;">{{ t.created_at|date:"Y-m-d H:i" }}</td>
-                <td style="padding: 0.75rem;">{{ t.get_transaction_type_display }}</td>
+                <td style="padding: 0.75rem;">{{ t.get_transaction_type_display }}{% if t.description %} — {{ t.description }}{% endif %}</td>
                 <td style="padding: 0.75rem; text-align: right;">{% if t.amount >= 0 %}+{% endif %}${{ t.amount }}</td>
                 <td style="padding: 0.75rem; text-align: right;">{% if t.balance_after is not None %}${{ t.balance_after }}{% else %}—{% endif %}</td>
                 <td style="padding: 0.75rem;">{{ t.description|default:"—" }}</td>
