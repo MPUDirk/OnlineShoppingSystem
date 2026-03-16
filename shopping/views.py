@@ -1,4 +1,3 @@
-from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, Http404
@@ -8,16 +7,8 @@ from django.views import View
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from .forms import CartItemUpdateForm, ProductCreateForm, ProductUpdateForm
+from .forms import CartItemUpdateForm
 from .models import Product, ShoppingCart, CartItem
-
-
-class VendorOrAdminRequiredMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
-    """Allow Vendor group or staff/superuser."""
-    def test_func(self):
-        if self.request.user.is_staff or self.request.user.is_superuser:
-            return True
-        return self.request.user.groups.filter(name='Vendor').exists()
 
 
 class ProductListView(ListView):
@@ -42,38 +33,6 @@ class ProductListView(ListView):
         context['query'] = self.request.GET.get('q', '')
         context['category'] = self.request.GET.get('category', '')
         return context
-
-
-class ProductCreateView(VendorOrAdminRequiredMixin, CreateView):
-    model = Product
-    form_class = ProductCreateForm
-    template_name = 'store/product_add.html'
-    success_url = reverse_lazy('shopping:product_list')
-
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
-
-
-class ProductEditPermissionMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
-    """Admin can edit any product; Vendor can only edit products they created."""
-    def test_func(self):
-        if self.request.user.is_staff or self.request.user.is_superuser:
-            return True
-        if not self.request.user.groups.filter(name='Vendor').exists():
-            return False
-        product = self.get_object()
-        return product.created_by_id == self.request.user.id
-
-
-class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
-    model = Product
-    form_class = ProductUpdateForm
-    template_name = 'store/product_edit.html'
-    context_object_name = 'product'
-
-    def get_success_url(self):
-        return reverse('shopping:product_detail', kwargs={'pk': self.object.pk})
 
 
 class ProductDetailPageView(DetailView):

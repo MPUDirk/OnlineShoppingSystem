@@ -71,7 +71,7 @@
 
 <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
     {% if can_edit %}
-    <a href="{% url 'shopping:product_edit' product.pk %}" class="btn btn-primary">Edit</a>
+    <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-primary">Edit</a>
     {% endif %}
     <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary">Back to Products</a>
 </div>
