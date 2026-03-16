@@ -9,8 +9,8 @@ from django.views.generic import TemplateView, UpdateView, DeleteView
 from django.views.generic.edit import CreateView, FormView, FormMixin
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from .forms import SignUpForm, LoginForm, UserEditForm, ShippingAddressUpdateForm
-from .models import ShippingAddress
+from .forms import SignUpForm, LoginForm, UserEditForm, ShippingAddressUpdateForm, DepositForm, WithdrawForm
+from .models import ShippingAddress, Wallet, Transaction
 
 
 class CustomFormMixin(FormMixin):
@@ -29,27 +29,9 @@ class UserDetailView(CustomLoginRequiredMixin, TemplateView):
         context['user'] = self.request.user
         context['shipping_addresses'] = ShippingAddress.objects.filter(user=context['user'])
         context['is_vendor'] = self.request.user.groups.filter(name='Vendor').exists()
+        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        context['wallet'] = wallet
         return context
-
-
-class RoleSwitchView(CustomLoginRequiredMixin, View):
-    """买家/卖家身份切换"""
-    http_method_names = ['post']
-
-    def post(self, request):
-        user = request.user
-        customer_group, _ = Group.objects.get_or_create(name='Customer')
-        vendor_group, _ = Group.objects.get_or_create(name='Vendor')
-
-        if user.groups.filter(name='Vendor').exists():
-            user.groups.clear()
-            user.groups.add(customer_group)
-            return redirect('user:detail')
-        else:
-            user.groups.clear()
-            user.groups.add(vendor_group)
-            # 若项目已配置 /merchant/ 路由，可改为 redirect('/merchant/dashboard/')
-            return redirect('user:detail')
 
 
 class AccountEditView(CustomLoginRequiredMixin, UpdateView):
@@ -95,6 +77,67 @@ class ShippingAddressDeleteView(CustomLoginRequiredMixin, DeleteView):
 
     def get_object(self, queryset=None):
         return get_object_or_404(ShippingAddress, pk=self.kwargs['pk'], user=self.request.user)
+
+class WalletDepositView(CustomLoginRequiredMixin, FormView):
+    form_class = DepositForm
+    template_name = 'user/wallet_deposit.html'
+    success_url = reverse_lazy('user:detail')
+
+    def form_valid(self, form):
+        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        amount = form.cleaned_data['amount']
+        wallet.balance += amount
+        wallet.save()
+        Transaction.objects.create(
+            user=self.request.user,
+            amount=amount,
+            transaction_type=Transaction.DEPOSIT,
+            balance_after=wallet.balance,
+            description='Deposit'
+        )
+        return redirect(self.success_url)
+
+
+class WalletWithdrawView(CustomLoginRequiredMixin, FormView):
+    form_class = WithdrawForm
+    template_name = 'user/wallet_withdraw.html'
+    success_url = reverse_lazy('user:detail')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        context['wallet'] = wallet
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        kwargs['wallet'] = wallet
+        return kwargs
+
+    def form_valid(self, form):
+        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        amount = form.cleaned_data['amount']
+        wallet.balance -= amount
+        wallet.save()
+        Transaction.objects.create(
+            user=self.request.user,
+            amount=-amount,
+            transaction_type=Transaction.WITHDRAW,
+            balance_after=wallet.balance,
+            description='Withdraw'
+        )
+        return redirect(self.success_url)
+
+
+class TransactionListView(CustomLoginRequiredMixin, TemplateView):
+    template_name = 'user/transaction_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['transactions'] = Transaction.objects.filter(user=self.request.user)[:50]
+        return context
+
 
 class OSSLoginView(LoginView, CustomFormMixin):
     form_class = LoginForm

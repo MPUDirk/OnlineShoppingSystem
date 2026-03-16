@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History - Online Store{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Transaction History</h2>
+    <a href="{% url 'user:detail' %}" class="btn btn-secondary" style="margin-bottom: 1rem;">Back to Account</a>
+    {% if transactions %}
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                <th style="padding: 0.75rem; text-align: left;">Date</th>
+                <th style="padding: 0.75rem; text-align: left;">Type</th>
+                <th style="padding: 0.75rem; text-align: right;">Amount</th>
+                <th style="padding: 0.75rem; text-align: right;">Balance After</th>
+                <th style="padding: 0.75rem; text-align: left;">Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 0.75rem;">{{ t.created_at|date:"Y-m-d H:i" }}</td>
+                <td style="padding: 0.75rem;">{{ t.get_transaction_type_display }}</td>
+                <td style="padding: 0.75rem; text-align: right;">{% if t.amount >= 0 %}+{% endif %}${{ t.amount }}</td>
+                <td style="padding: 0.75rem; text-align: right;">{% if t.balance_after is not None %}${{ t.balance_after }}{% else %}—{% endif %}</td>
+                <td style="padding: 0.75rem;">{{ t.description|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; padding: 2rem;">No transactions yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

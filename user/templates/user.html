@@ -10,20 +10,18 @@
         <p><strong>Username:</strong> {{ user.username }}</p>
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+        <p><strong>Balance:</strong> ${{ wallet.balance }}</p>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            <a href="{% url 'user:wallet_deposit' %}" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.9rem;">Deposit</a>
+            <a href="{% url 'user:wallet_withdraw' %}" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.9rem;">Withdraw</a>
+            <a href="{% url 'user:transaction_list' %}" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.9rem;">Transaction History</a>
+        </div>
         {% if not user.is_staff and not user.is_superuser %}
         <p><strong>Role:</strong>
             {% if is_vendor %}
                 <span style="padding: 0.2rem 0.5rem; background: #3498db; color: white; border-radius: 4px;">Vendor</span>
-                <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Customer</button>
-                </form>
             {% else %}
                 <span style="padding: 0.2rem 0.5rem; background: #27ae60; color: white; border-radius: 4px;">Customer</span>
-                <form method="post" action="{% url 'user:role_switch' %}" style="display: inline; margin-left: 0.5rem;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.9rem;">Switch to Vendor</button>
-                </form>
             {% endif %}
         </p>
         {% endif %}

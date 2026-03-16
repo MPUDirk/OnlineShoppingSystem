@@ -39,6 +39,19 @@
                     <label for="regConfirmPassword" class="form-label">Confirm Password</label>
                     <input type="password" class="form-control" id="regConfirmPassword" name="confirm_password" value="{{ form.password.value|default:'' }}" required>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Account Type</label>
+                    <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="user_type" value="customer" {% if form.user_type.value == 'customer' or not form.user_type.value %}checked{% endif %} style="margin-right: 0.5rem;">
+                            Customer (Buyer)
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="user_type" value="vendor" {% if form.user_type.value == 'vendor' %}checked{% endif %} style="margin-right: 0.5rem;">
+                            Vendor (Seller)
+                        </label>
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Sign Up</button>
             </form>
             <div class="text-center mt-3">

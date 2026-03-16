@@ -2,9 +2,10 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.password_validation import validate_password
+from decimal import Decimal
 
 from shopping.models import ShoppingCart
-from .models import ShippingAddress
+from .models import ShippingAddress, Wallet
 
 
 class LoginForm(AuthenticationForm):
@@ -25,6 +26,13 @@ class SignUpForm(forms.ModelForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True, label='First Name')
     last_name = forms.CharField(max_length=30, required=True, label='Last Name')
+    user_type = forms.ChoiceField(
+        choices=[('customer', 'Customer'), ('vendor', 'Vendor')],
+        widget=forms.RadioSelect,
+        label='Account Type',
+        required=True,
+        initial='customer'
+    )
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
@@ -44,14 +52,49 @@ class SignUpForm(forms.ModelForm):
         return super().clean()
 
     def save(self, commit=True):
+        user_type = self.cleaned_data.pop('user_type')
         user = User.objects.create_user(**self.cleaned_data)
         user.save()
 
-        customer_group, _ = Group.objects.get_or_create(name='Customer')
-        user.groups.add(customer_group)
-        ShoppingCart.objects.create(customer=user)
+        if user_type == 'customer':
+            customer_group, _ = Group.objects.get_or_create(name='Customer')
+            user.groups.add(customer_group)
+            ShoppingCart.objects.create(customer=user)
+        else:
+            vendor_group, _ = Group.objects.get_or_create(name='Vendor')
+            user.groups.add(vendor_group)
 
+        Wallet.objects.get_or_create(user=user)
         return user
+
+
+class DepositForm(forms.Form):
+    amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00', 'step': '0.01'})
+    )
+
+
+class WithdrawForm(forms.Form):
+    amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00', 'step': '0.01'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.wallet = kwargs.pop('wallet')
+        super().__init__(*args, **kwargs)
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and self.wallet and amount > self.wallet.balance:
+            raise forms.ValidationError('Insufficient balance')
+        return amount
+
 
 class UserEditForm(forms.ModelForm):
     class Meta:
@@ -62,6 +105,7 @@ class UserEditForm(forms.ModelForm):
         self.instance.groups.clear()
         self.instance.groups.add(Group.objects.get(name='Vendor'))
         return super().save(commit)
+
 
 class ShippingAddressUpdateForm(forms.ModelForm):
     class Meta:
@@ -97,7 +141,6 @@ class ShippingAddressUpdateForm(forms.ModelForm):
         return is_default
 
     def clean(self):
-        # 仅编辑时检查是否有修改；新建时跳过
         if self.addr is not None and len(self.changed_data) == 0:
             raise forms.ValidationError('No Changed')
         return super().clean()

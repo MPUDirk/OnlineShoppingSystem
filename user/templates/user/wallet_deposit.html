@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Deposit - Online Store{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2>Deposit</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="id_amount" class="form-label">Amount ($)</label>
+            {{ form.amount }}
+            {% if form.amount.errors %}
+            <div class="text-danger" style="font-size: 0.9rem;">{{ form.amount.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Deposit</button>
+            <a href="{% url 'user:detail' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
