@@ -58,7 +58,7 @@
             {% if errors %}
             
             <div class="modal-content" onclick="event.stopPropagation()">
-                <span class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</span>
+                <span class="close-btn" onclick="this.parentElement.style.display='none'">&times;</span>
                 <h3 class="text-danger">错误信息</h3>
                 <div class="error-list">
                         {% for k, v in errors.items %}
