@@ -46,6 +46,15 @@ INSTALLED_APPS = [
     'vendor',
 ]
 
+STORAGES = {
+    'default': {
+        'BACKEND': 'OnlineShoppingSys.storages.CustomFileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    }
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -79,7 +88,7 @@ TEMPLATES = [
     },
 ]
 
-LOGIN_REDIRECT_URL = 'index'
+LOGIN_REDIRECT_URL = 'shopping:index'
 LOGOUT_REDIRECT_URL = 'user:login'
 
 WSGI_APPLICATION = 'OnlineShoppingSys.wsgi.application'
@@ -141,5 +150,5 @@ STATICFILES_DIRS = [
 STATIC_ROOT = BASE_DIR / "collectedstatic"
 
 # Media files (User uploaded files)
-MEDIA_URL = '/media/'
+MEDIA_URL = f'{os.environ.get("MEDIA_URL","")}/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

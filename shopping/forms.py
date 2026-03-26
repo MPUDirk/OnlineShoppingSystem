@@ -35,3 +35,4 @@ class CheckoutForm(forms.Form):
         self.user = kwargs.pop('user')
         super().__init__(*args, **kwargs)
         self.fields['shipping_address'].queryset = ShippingAddress.objects.filter(user=self.user).order_by('-is_default', '-created_at')
+        self.fields['shipping_address'].initial = ShippingAddress.objects.get(user=self.user, is_default=True)

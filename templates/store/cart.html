@@ -55,7 +55,7 @@
         {% for item in cart_items %}
         <div class="cart-item">
             <label style="display: flex; align-items: center; margin-right: 0.75rem; cursor: pointer; flex-shrink: 0;">
-                <input type="checkbox" name="items" value="{{ item.pk }}" checked style="width: 1.25rem; height: 1.25rem;" />
+                <input type="checkbox" name="items" value="{{ item.pk }}" checked style="width: 1.25rem; height: 1.25rem;" onchange="subtotal_change()" data-price="{{ item.get_subtotal }}"/>
             </label>
             <div class="cart-item-image">
                 <img src="{% if item.product.thumbnail %}{{ item.product.thumbnail.url }}{% else %}https://via.placeholder.com/80?text=No+Image{% endif %}" alt="{{ item.product.name }}" />
@@ -67,7 +67,7 @@
                     <form method="post" action="{% url 'shopping:cart_item_edit' item.pk %}" style="display: flex; align-items: center; gap: 0.5rem;">
                         {% csrf_token %}
                         <label>Qty:</label>
-                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" onchange="this.form.submit()" />
+                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" onchange="edit_submit('{% url 'shopping:cart_item_edit' item.pk %}')"/>
                     </form>
                     <form method="post" action="{% url 'shopping:cart_item_delete' item.pk %}" style="display: inline;" onsubmit="return confirm('Remove this item?');">
                         {% csrf_token %}
@@ -106,5 +106,6 @@
         <a href="{% url 'shopping:product_list' %}" class="btn btn-primary">Go Shopping</a>
     </div>
     {% endif %}
+    <script src="{% static 'js/cart.js' %}"></script>
 </div>
 {% endblock %}

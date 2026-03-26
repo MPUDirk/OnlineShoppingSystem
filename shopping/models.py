@@ -1,7 +1,11 @@
-from django.db import models
-from django.conf import settings
-from django.core.validators import MinValueValidator
+from datetime import timedelta
 from decimal import Decimal
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.utils import timezone
 
 
 class Category(models.Model):
@@ -204,6 +208,30 @@ class Order(models.Model):
             models.Index(fields=['customer']),
             models.Index(fields=['status']),
         ]
+
+    def get_is_finished(self):
+        after_7days = self.updated_at + timedelta(days=7)
+        is_finished = self.status == 'delivered' and timezone.now() > after_7days
+        if is_finished:
+            OrderStatusHistory.objects.get_or_create(
+                order=self, status='finished',
+                defaults={'note':'Order finished automatically','changed_at': after_7days}
+            )
+        return is_finished
+
+    def get_next_status(self):
+        next_map = {
+            'pending': 'shipped',
+            'shipped': 'delivered',
+        }
+
+        return next_map.get(self.status, self.status)
+
+    def get_vendor_amount(self, vendor):
+        user = User.objects.get(username=vendor)
+        if user.is_staff or user.is_superuser:
+            return sum(item.quantity * item.unit_price for item in self.items.all())
+        return sum(item.quantity * item.unit_price for item in self.items.filter(product__created_by=vendor))
     
     def __str__(self):
         return f"Order {self.order_number}"
@@ -271,7 +299,7 @@ class OrderStatusHistory(models.Model):
         related_name='status_history'
     )
     status = models.CharField(max_length=20)
-    changed_at = models.DateTimeField(auto_now_add=True)
+    changed_at = models.DateTimeField(default=timezone.now, editable=False)
     note = models.CharField(max_length=255, blank=True)
 
     class Meta:

@@ -3,13 +3,14 @@
 {% block title %}My Orders - Online Store{% endblock %}
 
 {% block content %}
+{% include 'modules/modal.html' with title="Cancel Order" message="Are you sure you want to cancel this order?" conf_btn_color="btn-danger" conf_btn_label="Cancel" %}
 <div class="card">
     <h2>My Orders</h2>
     {% if orders %}
     <ul style="list-style: none; padding: 0;">
         {% for order in orders %}
-        <li style="padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #0d6efd;">
-            <a href="{% url 'shopping:order_detail' order.pk %}" style="text-decoration: none; color: inherit; display: block;">
+        <li class="row" style="padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #0d6efd;">
+            <a href="{% url 'shopping:order_detail' order.pk %}" class="col" style="text-decoration: none; color: inherit; display: block;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
                         <strong>#{{ order.order_number }}</strong>
@@ -21,6 +22,9 @@
                     </div>
                 </div>
             </a>
+            {% if order.status == 'pending' %}
+                <button class="col-auto p-1 btn btn-danger" data-action="{% url 'shopping:order_cancel' order.pk %}">Cancel</button>
+            {% endif %}
         </li>
         {% endfor %}
     </ul>
@@ -40,4 +44,5 @@
     <p style="color: #666; padding: 2rem;">No orders yet. <a href="{% url 'shopping:product_list' %}">Start shopping</a></p>
     {% endif %}
 </div>
+<script src="{% static 'js/c_order_list.js' %}"></script>
 {% endblock %}

@@ -1,23 +1,32 @@
 from django.db import transaction as db_transaction
 from django.db.models import Q
-from django.forms.models import model_to_dict
-from django.http import JsonResponse, Http404
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
-from django.views import View
-from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView, FormView
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView, FormView, TemplateView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from .forms import CartItemUpdateForm, CheckoutForm
-from .models import Product, ShoppingCart, CartItem, Order, OrderItem
 from user.models import Wallet, Transaction
+from vendor.views import OrderUpdateView
+from .forms import CartItemUpdateForm, CheckoutForm
+from .models import Product, ShoppingCart, CartItem, Order, OrderItem, Category, ProductImage, OrderStatusHistory
 
+
+class IndexView(TemplateView):
+    template_name = 'store/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        context['popular_products'] = Product.objects.filter(is_active=True).order_by('-order_items__quantity')[:3]
+        context['new_arrivals'] = Product.objects.filter(is_active=True).order_by('-created_at')[:4]
+        return context
 
 class ProductListView(ListView):
     model = Product
     allow_empty = True
     template_name = 'store/product_list.html'
-    paginate_by = 20
+    paginate_by = 12
     context_object_name = 'products'
 
     def get_queryset(self):
@@ -43,11 +52,12 @@ class ProductDetailPageView(DetailView):
     context_object_name = 'product'
 
     def get_queryset(self):
-        return Product.objects.select_related('category')
+        return Product.objects.filter(is_active=True).select_related('category')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = context['product']
+        context['images'] = ProductImage.objects.filter(product=product).order_by('display_order')
         related = Product.objects.filter(is_active=True).exclude(pk=product.pk)
         if product.category:
             related = related.filter(category=product.category)
@@ -83,7 +93,6 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
 
 class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
     form_class = CartItemUpdateForm
-    template_name = 'item_create.html'
     success_url = reverse_lazy('shopping:shopping_cart')
 
     def get_context_data(self, **kwargs):
@@ -112,7 +121,6 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
 
 class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
     form_class = CartItemUpdateForm
-    template_name = 'item_edit.html'
     success_url = reverse_lazy('shopping:shopping_cart')
 
     def get(self, request, *args, **kwargs):
@@ -197,40 +205,59 @@ class CheckoutView(CustomerOnlyMixin, FormView):
             return redirect('shopping:shopping_cart')
 
         total = sum(item.get_subtotal() for item in cart_items)
-        wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
-        if wallet.balance < total:
+        c_wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
+        if c_wallet.balance < total:
             return redirect('shopping:shopping_cart')
 
         addr = form.cleaned_data['shipping_address']
 
         with db_transaction.atomic():
-            order = Order.objects.create(
-                customer=self.request.user,
-                shipping_address=addr,
-                shipping_address_text=addr.address,
-                total_amount=total,
-                status='pending'
-            )
             for item in cart_items:
+                subtotal = item.get_subtotal()
+                vendor = item.product.created_by
+                order = Order.objects.create(
+                    customer=self.request.user,
+                    shipping_address=addr,
+                    shipping_address_text=addr.address,
+                    total_amount=subtotal,
+                    status='pending'
+                )
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status='pending',
+                    note=f'{order.order_number} created by {self.request.user.username}'
+                )
                 OrderItem.objects.create(
                     order=order,
                     product=item.product,
                     quantity=item.quantity,
                     unit_price=item.product.price,
-                    subtotal=item.get_subtotal()
+                    subtotal=subtotal
                 )
-            wallet.balance -= total
-            wallet.save()
-            Transaction.objects.create(
-                user=self.request.user,
-                amount=-total,
-                transaction_type=Transaction.PURCHASE,
-                balance_after=wallet.balance,
-                description=f'Order {order.order_number}'
-            )
+                v_wallet, _ = Wallet.objects.get_or_create(user=vendor)
+                v_wallet.balance += subtotal
+                v_wallet.save()
+                v_trans, _ = Transaction.objects.get_or_create(
+                    user=vendor,
+                    transaction_type=Transaction.PURCHASE,
+                    description=f'Order {order.order_number}',
+                    defaults={'amount': 0, 'balance_after': 0}
+                )
+                v_trans.amount += subtotal
+                v_trans.balance_after = v_wallet.balance
+                v_trans.save()
+                c_wallet.balance -= subtotal
+                c_wallet.save()
+                Transaction.objects.create(
+                    user=self.request.user,
+                    amount=-subtotal,
+                    transaction_type=Transaction.PURCHASE,
+                    balance_after=c_wallet.balance,
+                    description=f'Order {order.order_number}'
+                )
             CartItem.objects.filter(pk__in=[i.pk for i in cart_items]).delete()
 
-        return redirect('shopping:order_detail', pk=order.pk)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class OrderListView(CustomerOnlyMixin, ListView):
@@ -244,63 +271,50 @@ class OrderListView(CustomerOnlyMixin, ListView):
         return Order.objects.filter(customer=self.request.user).order_by('-purchase_date')
 
 
-class OrderDetailView(CustomerOnlyMixin, DetailView):
+class OrderDetailView(DetailView):
     """A13: Order detail - P.O. number, date, shipping address, total, status, items with name/qty/price/subtotal."""
     model = Order
     template_name = 'store/order_detail.html'
     context_object_name = 'order'
 
-    def get_queryset(self):
-        return Order.objects.filter(customer=self.request.user).prefetch_related('items__product')
+    def dispatch(self, request, *args, **kwargs):
+        order = self.get_object()
+        items_all = order.items.all()
+        vendor = [i.product.created_by for i in items_all]
+        user = request.user
+        if user not in vendor and not user.is_staff and not user.is_superuser and order.customer != user:
+            raise Http404('Not available')
+        return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_history'] = OrderStatusHistory.objects.filter(order=self.object).order_by('changed_at')
+        context['items'] = self.object.items.all()
+        user = self.request.user
+        if user.groups.filter(name='Vendor').exists():
+            context['vendor_amount'] = self.object.get_vendor_amount(user)
+            context['items'] = self.object.items.filter(product__created_by=user)
+        elif user.is_staff and user.is_superuser:
+            context['vendor_amount'] = self.object.total_amount
+            context['items'] = self.object.items.all()
+        return context
 
-class ProductView(View):
+class OrderUpdateCancelView(OrderUpdateView):
+    success_url = reverse_lazy('shopping:order_list')
+    def test_func(self):
+        instance = self.get_object()
+        return instance.status == 'pending' and instance.customer == self.request.user or super().test_func()
+
     def post(self, request, *args, **kwargs):
-        # Create a new product
-        data = request.POST
-        product = Product.objects.create(
-            name=data.get('name'),
-            price=data.get('price'),
-            description=data.get('description'),
-            is_active=data.get('is_active', True),
-            category_id=data.get('category')
-        )
-        return JsonResponse({'product': model_to_dict(product, fields=['id', 'name', 'price', 'description', 'is_active', 'category'])})
+        self.object = self.get_object()
+        form = self.get_form()
 
-    def put(self, request, *args, **kwargs):
-        # Update an existing product
-        data = request.POST
-        product_id = kwargs.get('id')
-        product = get_object_or_404(Product, id=product_id)
-        product.name = data.get('name', product.name)
-        product.price = data.get('price', product.price)
-        product.description = data.get('description', product.description)
-        product.is_active = data.get('is_active', product.is_active)
-        product.category_id = data.get('category', product.category_id)
-        product.save()
-        return JsonResponse({'product': model_to_dict(product, fields=['id', 'name', 'price', 'description', 'is_active', 'category'])})
+        data = form.data.copy()
+        data['status'] = 'cancelled'
 
-    def delete(self, request, *args, **kwargs):
-        # Delete a product
-        product_id = kwargs.get('id')
-        product = get_object_or_404(Product, id=product_id)
-        product.delete()
-        return JsonResponse({'message': 'Product deleted successfully'})
+        form = self.get_form_class()(data=data, instance=self.object)
 
-class ShoppingCartView(View):
-    def put(self, request, *args, **kwargs):
-        # Update the quantity of a product in the shopping cart
-        data = request.POST
-        item_id = kwargs.get('id')
-        quantity = int(data.get('quantity', 1))
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
-        cart_item.quantity = quantity
-        cart_item.save()
-        return JsonResponse({'message': 'Cart item updated', 'cart_item': model_to_dict(cart_item, fields=['id', 'quantity'])})
-
-    def delete(self, request, *args, **kwargs):
-        # Remove a product from the shopping cart
-        item_id = kwargs.get('id')
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__customer=request.user)
-        cart_item.delete()
-        return JsonResponse({'message': 'Cart item removed'})
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)

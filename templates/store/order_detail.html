@@ -8,8 +8,26 @@
     <div style="margin-bottom: 1.5rem;">
         <p><strong>Purchase Date:</strong> {{ order.purchase_date|date:"Y-m-d H:i" }}</p>
         <p><strong>Shipping Address:</strong> {{ order.shipping_address_text|default:order.shipping_address.address|default:"—" }}</p>
-        <p><strong>Total Amount:</strong> ${{ order.total_amount }}</p>
-        <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+        <p><strong>Total Amount:</strong> ${% if is_vendor %}{{ vendor_amount }}{% else %}{{ order.total_amount }}{% endif %}</p>
+        <p><strong>Status:</strong> {% if order.get_is_finished %}Finished{% else %}{{ order.get_status_display }}{% endif %}</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                    <th style="padding: 0.75rem; text-align: left;">Time</th>
+                    <th style="padding: 0.75rem; text-align: left;">Status</th>
+                    <th style="padding: 0.75rem; text-align: left;">Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in status_history %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 0.75rem; text-align: left;">{{ item.changed_at }}</td>
+                    <td style="padding: 0.75rem; text-align: left;">{{ item.status }}</td>
+                    <td style="padding: 0.75rem; text-align: left;">{{ item.note }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <h3>Items</h3>
@@ -23,7 +41,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for item in order.items.all %}
+            {% for item in items %}
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 0.75rem;"><a href="{% url 'shopping:product_detail' item.product.pk %}" style="color: #0d6efd; text-decoration: none;">{{ item.product.name }}</a></td>
                 <td style="padding: 0.75rem; text-align: right;">{{ item.quantity }}</td>
@@ -35,6 +53,6 @@
     </table>
     <p style="font-weight: bold; margin-top: 1rem;">Total: ${{ order.total_amount }}</p>
 
-    <a href="{% url 'shopping:order_list' %}" class="btn btn-secondary" style="margin-top: 1rem;">Back to Orders</a>
+    <a href="{% if is_vendor or request.user.is_staff or request.user.is_superuser %}{% url 'vendor:order_list' %}{% else %}{% url 'shopping:order_list' %}{% endif %}" class="btn btn-secondary" style="margin-top: 1rem;">Back to Orders</a>
 </div>
 {% endblock %}

@@ -48,13 +48,9 @@ class SignUpForm(forms.ModelForm):
             raise forms.ValidationError('Email already exists')
         return email
 
-    def clean(self):
-        return super().clean()
-
     def save(self, commit=True):
         user_type = self.cleaned_data.pop('user_type')
         user = User.objects.create_user(**self.cleaned_data)
-        user.save()
 
         if user_type == 'customer':
             customer_group, _ = Group.objects.get_or_create(name='Customer')

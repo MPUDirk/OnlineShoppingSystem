@@ -17,9 +17,6 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
         <h2 style="margin: 0;">Product List</h2>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-            {% if is_vendor or user.is_staff or user.is_superuser %}
-            <a href="{% url 'vendor:product_add' %}" class="btn btn-primary">Add Product</a>
-            {% endif %}
             <span id="product-count">{{ page_obj.paginator.count }} products</span>
         </div>
     </div>

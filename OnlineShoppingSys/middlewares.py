@@ -1,6 +1,7 @@
 import re
 
 from django.shortcuts import redirect
+from django.contrib.auth.models import Group
 
 from user.models import ShippingAddress
 
@@ -17,9 +18,10 @@ class CheckShippAddrMiddleware:
         ]
         path = request.path
         user = request.user
+        customer = Group.objects.get(name='Customer')
         match_pattens = [re.match(pattern, path) for pattern in path_pattens]
 
-        if not any(match_pattens) and user.is_authenticated and not user.is_superuser:
+        if not any(match_pattens) and user.is_authenticated and not user.is_superuser and customer in user.groups.all():
             if not ShippingAddress.objects.filter(user=user).exists():
                 return redirect('user:shipping_address_create')
         return self.get_response(request)

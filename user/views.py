@@ -33,15 +33,6 @@ class UserDetailView(CustomLoginRequiredMixin, TemplateView):
         context['wallet'] = wallet
         return context
 
-
-class AccountEditView(CustomLoginRequiredMixin, UpdateView):
-    form_class = UserEditForm
-    template_name = "account_edit.html"
-    success_url = reverse_lazy('user:detail')
-
-    def get_object(self, queryset = ...):
-        return self.request.user
-
 class ShippingAddressCreateView(CustomLoginRequiredMixin, FormView, CustomFormMixin):
     form_class = ShippingAddressUpdateForm
     template_name = "shipping_address_create.html"

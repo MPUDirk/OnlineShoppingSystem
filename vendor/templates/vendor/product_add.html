@@ -2,6 +2,10 @@
 
 {% block title %}Add Product - Online Store{% endblock %}
 
+{% block external_mods %}
+    <meta name="add-icon" content="{% static 'image/add.png' %}">
+{% endblock %}
+
 {% block content %}
 <div class="card" style="max-width: 600px;">
     <h2>Add Product</h2>
@@ -28,6 +32,7 @@
             <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
             {% endif %}
         </div>
+        {% include 'modules/product_imgs.html' %}
         <div class="form-group" style="margin-bottom: 1rem;">
             <label for="id_description" class="form-label">Description</label>
             {{ form.description }}
@@ -54,4 +59,7 @@
         </div>
     </form>
 </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="{% static 'js/product_imgs.js' %}"></script>
 {% endblock %}

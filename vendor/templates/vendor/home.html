@@ -3,6 +3,8 @@
 {% block title %}My Products - Vendor{% endblock %}
 
 {% block content %}
+{% include 'modules/modal.html' with title='Confirm Action' message='Are you sure you want to delete this product?' conf_btn_label='Delete' conf_btn_color='btn-danger' %}
+
 <div class="card">
     <h2>Product Management</h2>
     <p style="color: #666; margin-bottom: 1rem;">View and manage your products, including inactive/off-shelf items.</p>
@@ -29,7 +31,12 @@
                     {{ product.description|truncatewords:15 }}
                 </p>
                 <div class="product-actions">
-                    <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;">View</a>
+                    {% comment %}<button type="button" class="btn btn-danger w-100 mb-1" data-action="{% url 'vendor:product_delete' product.pk %}">
+                        Delete
+                    </button>{% endcomment %}
+                    {% if product.is_active %}
+                        <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-success w-100 mb-1" >View</a>
+                    {% endif %}
                     <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-primary" style="width: 100%;">Edit</a>
                 </div>
             </div>
@@ -51,4 +58,6 @@
     </nav>
     {% endif %}
 </div>
+
+<script src="{% static 'js/v_home.js' %}"></script>
 {% endblock %}

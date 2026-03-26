@@ -27,11 +27,11 @@
         {% endif %}
     </div>
 
-    {% if not user.is_staff and not user.is_superuser %}
+    {% if not is_vendor and not user.is_staff and not user.is_superuser %}
     <h3>Shipping Addresses</h3>
     <a href="{% url 'user:shipping_address_create' %}" class="btn btn-primary" style="margin-bottom: 1rem;">Add Address</a>
 
-    {% if shipping_addresses %}
+    {% if shipping_addresses.exists %}
     <ul style="list-style: none; padding: 0;">
         {% for addr in shipping_addresses %}
         <li style="padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
@@ -51,8 +51,6 @@
         </li>
         {% endfor %}
     </ul>
-    {% else %}
-    <p style="color: #666;">No shipping addresses. <a href="{% url 'user:shipping_address_create' %}">Add one</a></p>
     {% endif %}
     {% endif %}
 </div>

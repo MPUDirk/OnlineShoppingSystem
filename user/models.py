@@ -27,6 +27,7 @@ class Transaction(models.Model):
     """Transaction record for deposit/withdraw/purchase ledger."""
     DEPOSIT = 'deposit'
     WITHDRAW = 'withdraw'
+    REFUND = 'refund'
     PURCHASE = 'purchase'
 
     TYPE_CHOICES = [
