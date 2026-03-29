@@ -7,7 +7,7 @@
     <div class="page-header">
         <div>
             <h1 id="inventory-title" class="page-title">库存管理</h1>
-            <p class="page-subtitle">展示库存状态。</p>
+            <p class="page-subtitle">按 SKU（含可配置商品的每种规格）维护库存状态：有货 / 缺货。接口就绪后表格将自动填充。</p>
         </div>
     </div>
 
@@ -16,13 +16,15 @@
             <thead>
                 <tr>
                     <th scope="col">商品</th>
+                    <th scope="col">SKU</th>
+                    <th scope="col">规格</th>
                     <th scope="col">库存数量</th>
                     <th scope="col">库存状态</th>
                     <th scope="col">操作</th>
                 </tr>
             </thead>
             <tbody id="inventory-list-body">
-                 <tr><td colspan="4" class="muted text-center">加载中...</td></tr>
+                 <tr><td colspan="6" class="muted text-center">加载中...</td></tr>
             </tbody>
         </table>
     </div>
@@ -33,8 +35,8 @@
 <script>
     const API = {
         inventory: {
-            list: '/api/merchant/inventory', // 获取商品库存列表
-            update: (id) => `/api/merchant/inventory/${id}` // 更新单个商品库存状态
+            list: '/api/merchant/inventory',
+            update: (id) => `/api/merchant/inventory/${id}`
         }
     };
 
@@ -43,56 +45,71 @@
     });
 
     function fetchInventory() {
-        console.log('Fetching inventory...');
         axios.get(API.inventory.list)
             .then(res => renderInventory(res.data.results || []))
             .catch(err => {
                 console.error('Failed to fetch inventory:', err);
-                document.getElementById('inventory-list-body').innerHTML = '<tr><td colspan="4" class="text-danger text-center">数据加载失败</td></tr>';
+                document.getElementById('inventory-list-body').innerHTML =
+                    '<tr><td colspan="6" class="text-danger text-center">数据加载失败（需后端接口）</td></tr>';
             });
+    }
+
+    function esc(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/"/g, '&quot;');
     }
 
     function renderInventory(items) {
         const tbody = document.getElementById('inventory-list-body');
         if (items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="muted text-center">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="muted text-center">暂无数据</td></tr>';
             return;
         }
         tbody.innerHTML = items.map(i => {
             const stock = i.stock !== undefined ? i.stock : 0;
             const stockStatus = (stock > 0) ? 'ok' : 'warn';
             const statusText = (stock > 0) ? '有货' : '缺货';
-            
-            // 使用占位图如果图片不存在
             const imageUrl = i.image_url || 'https://via.placeholder.com/40';
+            const sku = i.sku != null ? i.sku : (i.sku_code || '—');
+            const spec = i.configuration_label != null ? i.configuration_label : (i.variant_label || '—');
 
             return `
             <tr>
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${imageUrl}" alt="${i.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
-                        <span>${i.name}</span>
+                        <img src="${esc(imageUrl)}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                        <span>${esc(i.name)}</span>
                     </div>
                 </td>
+                <td><code style="font-size: 0.85rem;">${esc(sku)}</code></td>
+                <td style="max-width: 12rem;">${esc(spec)}</td>
                 <td>
-                    <input type="number" 
-                           class="form-control" 
-                           style="width: 80px; padding: 4px;" 
-                           value="${stock}" 
+                    <input type="number"
+                           class="form-control inv-qty-input"
+                           style="width: 80px; padding: 4px;"
+                           data-inv-id="${esc(i.id)}"
+                           value="${stock}"
                            min="0"
-                           onchange="updateStockQuantity('${i.id}', this.value)"
                     >
                 </td>
                 <td><span class="status status-${stockStatus}">${statusText}</span></td>
                 <td>
-                    <button class="btn btn-secondary btn-sm" type="button" onclick="updateStockQuantity('${i.id}', document.querySelector('input[onchange*=${i.id}]').value, true)">保存</button>
+                    <button class="btn btn-secondary btn-sm" type="button" onclick="saveRow('${esc(i.id)}')">保存</button>
                 </td>
             </tr>
         `}).join('');
     }
 
+    function saveRow(id) {
+        const input = document.querySelector('.inv-qty-input[data-inv-id="' + id + '"]');
+        if (input) updateStockQuantity(id, input.value, true);
+    }
+
     function updateStockQuantity(id, newStock, showMessage = false) {
-        const stock = parseInt(newStock);
+        const stock = parseInt(newStock, 10);
         if (isNaN(stock) || stock < 0) {
             alert('请输入有效的库存数量');
             return;

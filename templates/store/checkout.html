@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Checkout - Online Store{% endblock %}
+
+{% block external_mods %}
+<link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
+{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -32,7 +37,11 @@
             <h3>Order Summary</h3>
             <ul style="list-style: none; padding: 0;">
                 {% for item in cart_items %}
-                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</li>
+                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <div>{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</div>
+                    {# Block D: optional — backend may output SKU / configuration per line #}
+                    <div class="line-item-meta" data-checkout-line></div>
+                </li>
                 {% endfor %}
             </ul>
             <p style="font-weight: bold; margin-top: 1rem;">Total: ${{ cart_total }}</p>

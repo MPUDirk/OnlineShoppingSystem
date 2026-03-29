@@ -13,9 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function edit_submit(action) {
-    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-    const quantity = document.querySelector('input[name="quantity"]').value;
+function edit_submit(action, qtyInput) {
+    const formEl = qtyInput && qtyInput.closest ? qtyInput.closest('form') : null;
+    const csrfField = formEl ? formEl.querySelector('input[name="csrfmiddlewaretoken"]') : document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const quantityField = qtyInput || (formEl ? formEl.querySelector('input[name="quantity"]') : document.querySelector('input[name="quantity"]'));
+    const csrf = csrfField ? csrfField.value : '';
+    const quantity = quantityField ? quantityField.value : '1';
 
     const edit_form = document.createElement("form");
     edit_form.method = "POST";

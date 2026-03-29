@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Shopping Cart - Online Store{% endblock %}
+
+{% block external_mods %}
+<link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
+{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -53,6 +58,7 @@
     <form method="get" action="{% url 'shopping:checkout' %}" id="cart-form">
     <div id="cart-content">
         {% for item in cart_items %}
+        {% url 'shopping:cart_item_edit' item.pk as cart_item_edit_url %}
         <div class="cart-item">
             <label style="display: flex; align-items: center; margin-right: 0.75rem; cursor: pointer; flex-shrink: 0;">
                 <input type="checkbox" name="items" value="{{ item.pk }}" checked style="width: 1.25rem; height: 1.25rem;" onchange="subtotal_change()" data-price="{{ item.get_subtotal }}"/>
@@ -62,12 +68,14 @@
             </div>
             <div class="cart-item-info">
                 <h4><a href="{% url 'shopping:product_detail' item.product.pk %}" style="text-decoration: none; color: #2c3e50;">{{ item.product.name }}</a></h4>
+                {# Block D: optional line — populate when backend provides sku_code / configuration_label on cart lines #}
+                <p class="cart-item-variant text-muted small mb-1" data-line-meta data-product-id="{{ item.product.product_id }}"></p>
                 <p style="color: #666; font-size: 0.9rem;">{{ item.product.description|truncatewords:15 }}</p>
                 <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                     <form method="post" action="{% url 'shopping:cart_item_edit' item.pk %}" style="display: flex; align-items: center; gap: 0.5rem;">
                         {% csrf_token %}
                         <label>Qty:</label>
-                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" onchange="edit_submit('{% url 'shopping:cart_item_edit' item.pk %}')"/>
+                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width: 60px; padding: 0.25rem; border: 1px solid #ddd; border-radius: 4px;" onchange="edit_submit('{{ cart_item_edit_url|escapejs }}', this)"/>
                     </form>
                     <form method="post" action="{% url 'shopping:cart_item_delete' item.pk %}" style="display: inline;" onsubmit="return confirm('Remove this item?');">
                         {% csrf_token %}
