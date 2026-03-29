@@ -1,16 +1,15 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, ListView, UpdateView, DeleteView
+from django.views.generic import CreateView, ListView, UpdateView, DeleteView, FormView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from shopping.models import Product, Order, OrderStatusHistory, OrderItem
+from shopping.models import Product, Order, OrderStatusHistory, ProductPropertyTitle, ProductProperty
 from user.models import Wallet, Transaction
-from .forms import ProductCreateForm, ProductUpdateForm
+from .forms import ProductCreateForm, ProductUpdateForm, PropertyTitleEditForm, PropertyEditForm
 
 
 class VendorOrAdminRequiredMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
@@ -30,7 +29,7 @@ class ProductEditPermissionMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
             return True
         if not self.request.user.groups.filter(name='Vendor').exists():
             return False
-        product = self.get_object()
+        product = Product.objects.get(id=self.kwargs['pk'])
         return product.created_by_id == self.request.user.id
 
     def dispatch(self, request, *args, **kwargs):
@@ -157,17 +156,93 @@ class ProductCreateView(VendorOrAdminRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class ProductPropertyTitleEditView(ProductEditPermissionMixin, FormView):
+    model = ProductPropertyTitle
+    form_class = PropertyTitleEditForm
+    template_name = 'vendor/product_edit.html'
+    context_object_name = 'property_title'
+
+    def get_object(self, queryset=None):
+        return Product.objects.get(id=self.kwargs['pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['product'] = self.get_object()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = self.get_object()
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
+class ProductPropertyTitleDeleteView(ProductEditPermissionMixin, DeleteView):
+    model = ProductPropertyTitle
+    context_object_name = 'property_title'
+    success_url = reverse_lazy('vendor:product_edit')
+
+    def get_object(self, queryset=None):
+        return ProductPropertyTitle.objects.get(product__id=self.kwargs['pk'])
+
+    def get_success_url(self):
+        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
+class ProductPropertyEditView(ProductEditPermissionMixin, FormView):
+    model = ProductProperty
+    form_class = PropertyEditForm
+    template_name = 'vendor/product_edit.html'
+
+    def get_object(self, queryset=None):
+        return Product.objects.get(id=self.kwargs['pk'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = self.get_object()
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
+class ProductPropertyDeleteView(ProductEditPermissionMixin, DeleteView):
+    model = ProductProperty
+    context_object_name = 'property'
+
+    def get_object(self, queryset=None):
+        return ProductProperty.objects.get(id=self.kwargs['pk'])
+
+    def get_success_url(self):
+        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
 class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
     model = Product
     form_class = ProductUpdateForm
     template_name = 'vendor/product_edit.html'
-    context_object_name = 'product'
-    success_url = reverse_lazy('vendor:home')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = self.get_object()
+        try:
+            context['properties'] = ProductPropertyTitle.objects.get(product=self.object)
+        except ProductPropertyTitle.DoesNotExist:
+            context['properties'] = None
+        return context
 
     def get_success_url(self):
-        return reverse('shopping:product_detail', kwargs={'pk': self.object.pk})
+        return reverse('shopping:product_detail', kwargs={'pk': self.kwargs['pk']})
 
 class ProductDeleteView(ProductEditPermissionMixin, DeleteView):
     model = Product
     context_object_name = 'product'
-    success_url = reverse_lazy('vendor:home')
+
+    def get_object(self, queryset=None):
+        return Product.objects.get(id=self.kwargs['pk'])

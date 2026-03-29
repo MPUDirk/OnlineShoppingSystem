@@ -45,6 +45,7 @@ class Product(models.Model):
         blank=True,
         related_name='products'
     )
+    total_sku = models.PositiveIntegerField(default=0)
     
     # Enable/disable (A18)
     is_active = models.BooleanField(default=True)
@@ -287,6 +288,44 @@ class OrderItem(models.Model):
             self.subtotal = self.unit_price * self.quantity
         super().save(*args, **kwargs)
 
+class ProductPropertyTitle(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='property_titles'
+    )
+    title = models.CharField(max_length=50)
+    is_main = models.BooleanField(default=False)
+    is_default = models.BooleanField(default=False)
+
+    def save(
+        self,
+        *,
+        force_insert = False,
+        force_update = False,
+        using = None,
+        update_fields = None,
+    ):
+        super().save()
+
+
+    def __str__(self):
+        return self.title
+
+class ProductProperty(models.Model):
+    title = models.ForeignKey(
+        ProductPropertyTitle,
+        on_delete=models.CASCADE,
+        related_name='properties'
+    )
+    image = models.ImageField(upload_to='product_properties/', blank=True)
+    name = models.CharField(max_length=255)
+    change_value = models.DecimalField(default=0, max_digits=10, decimal_places=2, blank=True, null=True)
+    sku = models.IntegerField(validators=[MinValueValidator(0)])
+
+
+    def __str__(self):
+        return f"{self.title}: {self.name}"
 
 class OrderStatusHistory(models.Model):
     """

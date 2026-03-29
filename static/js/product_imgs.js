@@ -28,7 +28,11 @@ let is_end = false;
 document.addEventListener(
     'DOMContentLoaded',
     (e) => {
-        img_group.append(...img_inputs);
+        if (is_img_data) {
+            load_img_data()
+        } else {
+            img_group.append(...img_inputs);
+        }
     }
 )
 
@@ -61,33 +65,27 @@ function handleImageUpload(input) {
 }
 
 function handleDelImg(n) {
-    // 移除第 n 个元素
     const elementToRemove = img_inputs[n - 1];
     if (elementToRemove && elementToRemove.parentNode) {
         elementToRemove.remove();
     }
 
-    // 从数组中删除该元素
     img_inputs.splice(n - 1, 1);
 
-    // 重新编号剩余的元素
     img_inputs.forEach((item, index) => {
         const newIndex = index + 1;
 
-        // 更新 input
         const input = item.querySelector('input[type="file"]');
         if (input) {
             input.id = `image-upload-${newIndex}`;
             input.name = `image${newIndex}`;
         }
 
-        // 更新 label
         const label = item.querySelector('label');
         if (label) {
             label.htmlFor = `image-upload-${newIndex}`;
         }
 
-        // 更新 preview
         const preview = item.querySelector('[id^="preview"]');
         if (preview) {
             preview.id = `preview${newIndex}`;
@@ -105,7 +103,6 @@ function handleDelImg(n) {
         }
     });
 
-    // 如果数量少于 5，补充一个新的上传框
     if (is_end) {
         const newItem = img_input(img_inputs.length + 1);
         img_inputs.push(newItem);

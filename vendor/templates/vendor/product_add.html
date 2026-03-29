@@ -2,63 +2,66 @@
 
 {% block title %}Add Product - Online Store{% endblock %}
 
-{% block external_mods %}
-    <meta name="add-icon" content="{% static 'image/add.png' %}">
-{% endblock %}
-
 {% block content %}
-<div class="card" style="max-width: 600px;">
-    <h2>Add Product</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_name" class="form-label">Product Name</label>
-            {{ form.name }}
-            {% if form.name.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.name.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_price" class="form-label">Price</label>
-            {{ form.price }}
-            {% if form.price.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.price.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
-            {{ form.thumbnail }}
-            {% if form.thumbnail.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
-            {% endif %}
-        </div>
-        {% include 'modules/product_imgs.html' %}
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_description" class="form-label">Description</label>
-            {{ form.description }}
-            {% if form.description.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.description.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_category" class="form-label">Category</label>
-            {{ form.category }}
-            {% if form.category.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.category.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                {{ form.is_active }}
-                <span style="margin-left: 0.5rem;">Active (visible to customers)</span>
-            </label>
-        </div>
-        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary">Add Product</button>
-            <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
-</div>
+    <div class="card">
+        <h2>Add Product</h2>
+        <form method="post" class="col" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_name" class="form-label">Product Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.name.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_price" class="form-label">Price</label>
+                {{ form.price }}
+                {% if form.price.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.price.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_total_sku" class="form-label">Total SKU</label>
+                {{ form.total_sku }}
+                {% if form.total_sku.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.total_sku.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
+                {{ form.thumbnail }}
+                {% if form.thumbnail.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% include 'modules/product_imgs.html' %}
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_description" class="form-label">Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_category" class="form-label">Category</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    {{ form.is_active }}
+                    <span style="margin-left: 0.5rem;">Active (visible to customers)</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary">Add Product</button>
+                <a href="{% url 'shopping:product_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 {% endblock %}
 {% block extra_js %}
     <script src="{% static 'js/product_imgs.js' %}"></script>

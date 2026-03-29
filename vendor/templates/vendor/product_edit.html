@@ -2,56 +2,213 @@
 
 {% block title %}Edit {{ product.name }} - Online Store{% endblock %}
 
+{% block external_mods %}
+    <meta name="add-icon" content="{% static 'image/add.png' %}">
+    <meta name="pk" content="{{ product.pk }}">
+{% endblock %}
+
 {% block content %}
-<div class="card" style="max-width: 600px;">
+<div class="card position-relative">
     <h2>Edit Product</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_name" class="form-label">Product Name</label>
-            {{ form.name }}
-            {% if form.name.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.name.errors.0 }}</div>
-            {% endif %}
+    <div class="row">
+        <form method="post" class="col gap-2" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_name" class="form-label">Product Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.name.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_price" class="form-label">Price</label>
+                {{ form.price }}
+                {% if form.price.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.price.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_total_sku" class="form-label">Total SKU</label>
+                {{ form.total_sku }}
+                {% if form.total_sku.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.total_sku.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
+                <img src="{{ product.thumbnail.url }}" alt="{{ product.name }}">
+                {{ form.thumbnail }}
+                {% if form.thumbnail.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% include "modules/product_imgs.html" %}
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_description" class="form-label">Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="id_category" class="form-label">Category</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.category.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    {{ form.is_active }}
+                    <span style="margin-left: 0.5rem;">Active (visible to customers)</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="{% url 'shopping:product_detail' product.id %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+        <div class="col">
+            <div class="form-group mb-5" style="margin-bottom: 1px">
+                 <form id="prop_title" class="mb-3" action="{% if properties %}{% url 'vendor:property_title_del' product.id %}{% else %}{% url 'vendor:property_title_edit' product.id %}{% endif %}" method="POST">
+                    <div class="d-flex flex-row align-items-center gap-2">
+                        <label for="title" class="form-label m-0">Main Properties</label>
+                        <button id="delete_property_btn" class="btn btn-danger py-0 {% if not properties %}d-none{% endif %}"
+                                data-bs-toggle="tooltip" data-bs-placement="top" title="Delete current property"
+                        >
+                            Delete
+                        </button>
+                        <button id="add_property_btn" class="btn btn-success py-0 {% if properties %}d-none{% endif %}">
+                            Add
+                        </button>
+                    </div>
+                    {% csrf_token %}
+                    <input type="hidden" name="is_main" value="on">
+                    <input type="text" class="form-control" id="title" name="title"
+                           placeholder="Please enter title for properties"
+                           required
+                           maxlength="50"
+                           minlength="1"
+                           pattern=".{1,50}"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Enter a unique name for this property (1-50 characters)"
+                           value="{{ properties.title }}"
+                    >
+                    <div class="form-check">
+                        <input id="is-default" class="form-check-input" type="checkbox" name="is_default" {% if properties.is_default %}checked{% endif %}>
+                        <label for="is-default" class="form-check-label">
+                            Image Default as thumbnail
+                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="If checked, the first uploaded image will be used as product thumbnail"></i>
+                        </label>
+                    </div>
+                </form>
+                <div id="main_props" class="row gap-2">
+                    {% if not properties.properties.all.exists %}
+                    <form id="main_prop1" action="" class="col-auto d-flex flex-column" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="title" value="{{ properties.title }}">
+                        <input type="file" id="main_input1" name="image" class="d-none" accept="image/!*"
+                               onChange="handleMainPropImageUpload(this)"/>
+                        <label for="main_input1" class="position-relative"
+                               style="cursor: pointer; display: inline-block;">
+                            <img id="main_image1" src="{% static 'image/add.png' %}" alt="add_img"
+                                 style="width: 50px; height: 50px; object-fit: contain;"/>
+                            <button id="main_add_btn1"
+                                    class="position-absolute top-0 start-100 translate-middle badge rounded-circle rounded-circle border-0 btn-success d-none"
+                            >
+                                +
+                            </button>
+                            <button id="main_del_btn1"
+                                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill border-0 btn-danger d-none">
+                                x
+                            </button>
+                        </label>
+                        <div id="main_input-group1">
+                            <input type="text" name="name" class="form-control mt-1 mb-1 p-1" data-bs-toggle="tooltip"
+                                   data-bs-placement="top" title="Name" style="width: 50px; font-size: 0.75rem">
+                            <input type="text" name="change_value" class="form-control mb-1 p-1" data-bs-toggle="tooltip"
+                                   data-bs-placement="top" title="Price changes"
+                                   style="width: 50px; font-size: 0.75rem">
+                            <input type="text" name="sku" class="form-control p-1" data-bs-toggle="tooltip"
+                                   data-bs-placement="top" title="SKU"
+                                   style="width: 50px; font-size: 0.75rem">
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 1px">
+                <label for="subProp1" class="form-label d-none">Sub Properties</label>
+            </div>
+            <button id="add_sub_prop" class="btn btn-primary p-2 d-none">Add Sub Properties</button>
         </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_price" class="form-label">Price</label>
-            {{ form.price }}
-            {% if form.price.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.price.errors.0 }}</div>
-            {% endif %}
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                Bootstrap
+                <button type="button" class="ms-auto btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                See? Just like this.
+            </div>
         </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
-            {{ form.thumbnail }}
-            {% if form.thumbnail.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_description" class="form-label">Description</label>
-            {{ form.description }}
-            {% if form.description.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.description.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="id_category" class="form-label">Category</label>
-            {{ form.category }}
-            {% if form.category.errors %}
-            <div class="text-danger" style="font-size: 0.9rem;">{{ form.category.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                {{ form.is_active }}
-                <span style="margin-left: 0.5rem;">Active (visible to customers)</span>
-            </label>
-        </div>
-        <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        const is_img_data = {{ product.images.exists|lower }}
+        const is_prop_data = {{ product.properties.exists|lower }}
+
+        function load_prop_data() {
+            const prop_data = [
+                {% for prop in product.properties.all %}
+                    {
+                        {% if properties.is_default %}"img": "{{ prop.image.url }}",{% endif %}
+                        "id": {{ prop.id }},
+                        "name": "{{ prop.name }}",
+                        "change_value": {{ prop.change_value }},
+                        "sku": "{{ prop.sku }}",
+                    },
+                {% endfor %}
+            ];
+            for (let i = 0; i < prop_data.length; i++) {
+                const prop = main_image_input(i+1);
+                const existInput = document.createElement('input');
+                existInput.type = "hidden";
+                existInput.name = "existed";
+                prop.append(existInput);
+                prop.action = `/vendor/products/property/${document.querySelector('meta[name="pk"]').content}/edit/`;
+                document.getElementById('main_props').append(prop);
+            }
+            document.getElementById('main_props').append(main_image_input(prop_data.length + 1))
+        }
+
+        function load_img_data() {
+            const img_src = [
+                {% for img in product.images.all %}
+                    '{{ img.image.url }}',
+                {% endfor %}
+            ];
+            for (let i = 0; i < {{ product.images.count }}; i++) {
+                const img_count = i + 1;
+                const items = img_input(img_count);
+                img_inputs.push(items)
+                img_group.append(items);
+                const label = document.querySelector(`label[for=image-upload-${img_count}]`);
+                const preview = document.getElementById(`preview${img_count}`);
+                const img = document.getElementById(`image${img_count}`);
+                label.classList.add('d-none');
+                img.src = img_src[i];
+                preview.classList.remove('d-none');
+            }
+            img_group.append(img_input({{ product.images.count }}+1));
+        }
+    </script>
+    <script src="{% static 'js/product_imgs.js' %}"></script>
+    <script src="{% static 'js/product_edit.js' %}"></script>
 {% endblock %}
