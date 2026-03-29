@@ -20,7 +20,10 @@
     {% else %}
     <p style="margin-bottom: 1rem;">Balance: ${{ wallet.balance }} | Total: ${{ cart_total }}</p>
 
-    <form method="post">
+    {# Same keys as cart-line-meta-json (cart item pk) for D5 optional OOS guard #}
+    <script id="checkout-line-meta-json" type="application/json">{}</script>
+
+    <form method="post" id="checkout-form">
         {% csrf_token %}
         {% for item in cart_items %}
         <input type="hidden" name="items" value="{{ item.pk }}" />
@@ -37,9 +40,8 @@
             <h3>Order Summary</h3>
             <ul style="list-style: none; padding: 0;">
                 {% for item in cart_items %}
-                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;" data-checkout-line-id="{{ item.pk }}">
                     <div>{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</div>
-                    {# Block D: optional — backend may output SKU / configuration per line #}
                     <div class="line-item-meta" data-checkout-line></div>
                 </li>
                 {% endfor %}
@@ -54,4 +56,34 @@
     </form>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/cart.js' %}"></script>
+<script>
+(function () {
+    function esc(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('checkout-line-meta-json');
+        if (!el) return;
+        var map = {};
+        try { map = JSON.parse(el.textContent || '{}'); } catch (e) { return; }
+        document.querySelectorAll('[data-checkout-line-id]').forEach(function (li) {
+            var id = li.getAttribute('data-checkout-line-id');
+            var meta = map[id];
+            var holder = li.querySelector('[data-checkout-line]');
+            if (!holder || !meta) return;
+            var sku = meta.sku || meta.sku_code;
+            var cfg = meta.configuration || meta.configuration_label || meta.config;
+            var bits = [];
+            if (sku) bits.push('SKU: <code>' + esc(sku) + '</code>');
+            if (cfg) bits.push('Configuration: ' + esc(cfg));
+            holder.innerHTML = bits.join(' · ');
+        });
+    });
+})();
+</script>
 {% endblock %}

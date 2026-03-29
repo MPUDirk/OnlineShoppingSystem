@@ -1,30 +1,35 @@
 {% extends 'merchant/base.html' %}
+{% load static %}
 
-{% block title %}库存管理 - 在线商城{% endblock %}
+{% block title %}Inventory — Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
+{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="page-header">
         <div>
-            <h1 id="inventory-title" class="page-title">库存管理</h1>
-            <p class="page-subtitle">按 SKU（含可配置商品的每种规格）维护库存状态：有货 / 缺货。接口就绪后表格将自动填充。</p>
+            <h1 id="inventory-title" class="page-title">Inventory (SKU)</h1>
+            <p class="page-subtitle">Each row is one SKU: simple products have a single SKU; configurable products have one SKU per configuration (D4). Toggle in-stock / out-of-stock per SKU. When the API is wired, the table loads from the server; otherwise demo data is shown.</p>
         </div>
     </div>
 
-    <div class="table-wrap" style="margin-top: 1rem;" aria-label="库存表格">
-        <table class="table" aria-label="库存列表表格">
+    <div class="table-wrap" style="margin-top: 1rem;" aria-label="Inventory table">
+        <table class="table" aria-label="SKU inventory">
             <thead>
                 <tr>
-                    <th scope="col">商品</th>
+                    <th scope="col">Product</th>
                     <th scope="col">SKU</th>
-                    <th scope="col">规格</th>
-                    <th scope="col">库存数量</th>
-                    <th scope="col">库存状态</th>
-                    <th scope="col">操作</th>
+                    <th scope="col">Configuration</th>
+                    <th scope="col">Qty (optional)</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody id="inventory-list-body">
-                 <tr><td colspan="6" class="muted text-center">加载中...</td></tr>
+                <tr><td colspan="6" class="muted text-center">Loading…</td></tr>
             </tbody>
         </table>
     </div>
@@ -33,26 +38,43 @@
 
 {% block extra_js %}
 <script>
+(function () {
     const API = {
         inventory: {
             list: '/api/merchant/inventory',
-            update: (id) => `/api/merchant/inventory/${id}`
+            update: (id) => '/api/merchant/inventory/' + id
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        fetchInventory();
-    });
-
-    function fetchInventory() {
-        axios.get(API.inventory.list)
-            .then(res => renderInventory(res.data.results || []))
-            .catch(err => {
-                console.error('Failed to fetch inventory:', err);
-                document.getElementById('inventory-list-body').innerHTML =
-                    '<tr><td colspan="6" class="text-danger text-center">数据加载失败（需后端接口）</td></tr>';
-            });
-    }
+    const MOCK_INVENTORY = [
+        {
+            id: 'demo-1',
+            name: 'Classic Tee (example)',
+            sku: 'TEE-WHITE-M',
+            configuration_label: 'White / M',
+            image_url: 'https://via.placeholder.com/40?text=Tee',
+            stock: 12,
+            in_stock: true
+        },
+        {
+            id: 'demo-2',
+            name: 'Classic Tee (example)',
+            sku: 'TEE-RED-L',
+            configuration_label: 'Red / L',
+            image_url: 'https://via.placeholder.com/40?text=Tee',
+            stock: 0,
+            in_stock: false
+        },
+        {
+            id: 'demo-3',
+            name: 'Simple Mug (example)',
+            sku: 'MUG-001',
+            configuration_label: '—',
+            image_url: 'https://via.placeholder.com/40?text=Mug',
+            stock: 50,
+            in_stock: true
+        }
+    ];
 
     function esc(s) {
         if (s == null) return '';
@@ -64,20 +86,21 @@
 
     function renderInventory(items) {
         const tbody = document.getElementById('inventory-list-body');
-        if (items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="muted text-center">暂无数据</td></tr>';
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="muted text-center">No rows</td></tr>';
             return;
         }
         tbody.innerHTML = items.map(i => {
             const stock = i.stock !== undefined ? i.stock : 0;
-            const stockStatus = (stock > 0) ? 'ok' : 'warn';
-            const statusText = (stock > 0) ? '有货' : '缺货';
+            const inStock = i.in_stock !== undefined ? !!i.in_stock : stock > 0;
+            const stockStatus = inStock ? 'ok' : 'warn';
+            const statusText = inStock ? 'In stock' : 'Out of stock';
             const imageUrl = i.image_url || 'https://via.placeholder.com/40';
             const sku = i.sku != null ? i.sku : (i.sku_code || '—');
             const spec = i.configuration_label != null ? i.configuration_label : (i.variant_label || '—');
 
             return `
-            <tr>
+            <tr data-inv-id="${esc(i.id)}" data-in-stock="${inStock ? '1' : '0'}">
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${esc(imageUrl)}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
@@ -95,35 +118,54 @@
                            min="0"
                     >
                 </td>
-                <td><span class="status status-${stockStatus}">${statusText}</span></td>
                 <td>
-                    <button class="btn btn-secondary btn-sm" type="button" onclick="saveRow('${esc(i.id)}')">保存</button>
+                    <label class="inv-stock-toggle" style="white-space: nowrap; cursor: pointer;">
+                        <input type="checkbox" class="inv-in-stock" data-inv-id="${esc(i.id)}" ${inStock ? 'checked' : ''} />
+                        In stock
+                    </label>
+                </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" type="button" onclick="saveRow('${esc(i.id)}')">Save</button>
                 </td>
             </tr>
-        `}).join('');
+        `;
+        }).join('');
     }
 
-    function saveRow(id) {
-        const input = document.querySelector('.inv-qty-input[data-inv-id="' + id + '"]');
-        if (input) updateStockQuantity(id, input.value, true);
-    }
-
-    function updateStockQuantity(id, newStock, showMessage = false) {
-        const stock = parseInt(newStock, 10);
-        if (isNaN(stock) || stock < 0) {
-            alert('请输入有效的库存数量');
-            return;
-        }
-
-        axios.patch(API.inventory.update(id), { stock: stock })
-            .then(() => {
-                if (showMessage) alert('库存更新成功');
-                fetchInventory();
-            })
-            .catch(err => {
-                const msg = err.response?.data?.message || err.message;
-                alert('库存更新失败: ' + msg);
+    function fetchInventory() {
+        axios.get(API.inventory.list)
+            .then(res => renderInventory(res.data.results || res.data || []))
+            .catch(() => {
+                renderInventory(MOCK_INVENTORY);
+                const tbody = document.getElementById('inventory-list-body');
+                const note = document.createElement('tr');
+                note.innerHTML = '<td colspan="6" class="text-muted small">Showing demo data. Connect <code>/api/merchant/inventory</code> to load live data.</td>';
+                tbody.appendChild(note);
             });
     }
+
+    window.saveRow = function (id) {
+        const row = document.querySelector('tr[data-inv-id="' + id + '"]');
+        if (!row) return;
+        const qtyInput = row.querySelector('.inv-qty-input[data-inv-id="' + id + '"]');
+        const stockCb = row.querySelector('.inv-in-stock[data-inv-id="' + id + '"]');
+        const stock = qtyInput ? parseInt(qtyInput.value, 10) : 0;
+        const in_stock = stockCb ? stockCb.checked : stock > 0;
+        if (qtyInput && (isNaN(stock) || stock < 0)) {
+            alert('Enter a valid quantity');
+            return;
+        }
+        axios.patch(API.inventory.update(id), { stock: stock, in_stock: in_stock })
+            .then(() => {
+                fetchInventory();
+            })
+            .catch(() => {
+                alert('Save failed (API not available). Demo mode: change is local only.');
+                if (stockCb) row.setAttribute('data-in-stock', stockCb.checked ? '1' : '0');
+            });
+    };
+
+    document.addEventListener('DOMContentLoaded', fetchInventory);
+})();
 </script>
 {% endblock %}

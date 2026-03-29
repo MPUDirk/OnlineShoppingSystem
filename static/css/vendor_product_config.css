@@ -1,0 +1,154 @@
+/* Vendor: configurable product builder (D1, D4) — frontend-only; wire to API later */
+
+.vendor-product-config {
+    margin-top: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fafbfc;
+}
+
+.vendor-product-config .vendor-product-type {
+    border: none;
+    padding: 0;
+    margin: 0 0 1rem;
+}
+
+.vendor-product-config .vendor-product-type legend {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.vendor-product-config .vendor-product-type label {
+    margin-right: 1.25rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.vendor-configurable-panel {
+    margin-top: 1rem;
+}
+
+.vendor-config-help {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.vendor-option-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.vendor-option-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.vendor-option-card-header label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.vendor-option-card-header input[type="text"] {
+    flex: 1;
+    min-width: 140px;
+    max-width: 280px;
+}
+
+.vendor-value-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.5rem;
+    align-items: end;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .vendor-value-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.vendor-value-row .form-hint {
+    font-size: 0.75rem;
+    color: #868e96;
+    grid-column: 1 / -1;
+    margin-top: -0.25rem;
+}
+
+.vendor-sku-matrix-wrap {
+    margin-top: 1.25rem;
+    overflow-x: auto;
+}
+
+.vendor-sku-matrix-wrap h4 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.vendor-sku-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.vendor-sku-table th,
+.vendor-sku-table td {
+    padding: 0.5rem 0.65rem;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.vendor-sku-table th {
+    background: #f1f3f5;
+    font-weight: 600;
+}
+
+.vendor-sku-table input[type="text"] {
+    width: 100%;
+    min-width: 120px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+}
+
+.vendor-sku-table .inv-toggle {
+    white-space: nowrap;
+}
+
+.vendor-config-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    align-items: center;
+}
+
+.vendor-json-preview {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+}
+
+.vendor-json-preview summary {
+    cursor: pointer;
+    color: #495057;
+    font-weight: 500;
+}
+
+.vendor-json-preview pre {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: #212529;
+    color: #e9ecef;
+    border-radius: 6px;
+    overflow: auto;
+    max-height: 200px;
+}
