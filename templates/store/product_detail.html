@@ -1,21 +1,50 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ product.name }} - Online Store{% endblock %}
 
+{% block external_mods %}
+<link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
+{% endblock %}
+
 {% block content %}
+    {# Block D: override block product_config_data with JSON (options + variants). Default {} = simple product. #}
+    <script id="product-config-data" type="application/json">
+{% block product_config_data %}{}{% endblock %}
+    </script>
+    <!--
+      Configurable product JSON (override block product_config_data). Customers must pick every option; swatch images update the main photo (D2).
+      Copy JSON from the vendor “Add product” screen (“Copy JSON for product detail”) or hand-author:
+      {
+        "options": [
+          {"id": "color", "label": "Colour", "ui": "swatch",
+           "values": [
+             {"id": "white", "label": "White", "image": "/media/example/white.jpg"},
+             {"id": "red", "label": "Red", "image": "/media/example/red.jpg"}
+           ]},
+          {"id": "size", "label": "Size", "ui": "radio",
+           "values": [{"id": "m", "label": "M"}, {"id": "l", "label": "L"}]}
+        ],
+        "variants": [
+          {"sku": "T-WHITE-M", "inStock": true, "selection": {"color": "white", "size": "m"}},
+          {"sku": "T-RED-L", "inStock": false, "selection": {"color": "red", "size": "l"}}
+        ]
+      }
+    -->
+
     <div class="card" id="product-detail-container">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <div class="product-detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
             <div id="carouselExampleIndicators" class="carousel carousel-dark slide" data-bs-ride="carousel">
                 <div class="carousel-inner d-flex h-100">
                     {% for image in images %}
-                        <div class="carousel-item align-self-center active">
+                        <div class="carousel-item align-self-center{% if forloop.first %} active{% endif %}">
                             <div class="d-flex align-items-center justify-content-center">
-                                <img src="{{ image.image.url }} " class="d-block w-100 img-fluid" alt="{{ image.alt_text }}">
+                                <img src="{{ image.image.url }}" {% if forloop.first %}id="product-main-image"{% endif %} class="d-block w-100 img-fluid" alt="{{ image.alt_text }}">
                             </div>
                         </div>
                         {% empty %}
                         <div class="carousel-item active">
-                            <img src="{{ product.thumbnail.url }}" alt="{{ product.name }}">
+                            <img src="{{ product.thumbnail.url }}" id="product-main-image" class="d-block w-100 img-fluid" alt="{{ product.name }}">
                         </div>
                     {% endfor %}
                 </div>
@@ -40,6 +69,14 @@
                     <p style="color: #666; line-height: 1.6;">{{ product.description|default:"No description" }}</p>
                 </div>
 
+                <div id="product-config-panel" class="product-config-panel is-hidden" aria-live="polite">
+                    <div id="product-option-mount"></div>
+                    <div class="product-sku-line">
+                        SKU: <code id="product-sku-display">—</code>
+                    </div>
+                    <div id="variant-stock-banner" class="variant-stock-banner variant-stock-banner--ok" hidden>In stock</div>
+                </div>
+
                 <div style="margin: 1.5rem 0;">
                     <h3>Product Details</h3>
                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">
@@ -52,14 +89,15 @@
 
                 <div style="margin-top: 2rem;">
                     {% if user.is_authenticated and not is_vendor and not user.is_staff and not user.is_superuser %}
-                        <form method="post" action="{% url 'shopping:cart_item_create' product.product_id %}" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <form method="post" action="{% url 'shopping:cart_item_create' product.product_id %}" class="add-to-cart-actions" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
                             {% csrf_token %}
+                            <input type="hidden" name="product_sku" id="cf-product-sku-field" value="" disabled />
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label for="quantity" class="form-label">Quantity</label>
                                 <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" style="width: 120px;" />
                             </div>
                             <div style="align-self: flex-end;">
-                                <button type="submit" class="btn btn-success">Add to Cart</button>
+                                <button type="submit" id="product-add-cart-btn" class="btn btn-success">Add to Cart</button>
                             </div>
                         </form>
                     {% elif not user.is_authenticated %}
