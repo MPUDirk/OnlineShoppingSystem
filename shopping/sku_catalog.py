@@ -69,8 +69,13 @@ def get_configuration_label(sku: Optional[ProductSKU]) -> str:
         'product_property__title_id',
         'pk',
     ):
-        parts.append(link.product_property.name)
-    return ' / '.join(parts) if parts else ''
+        prop = link.product_property
+        title_name = prop.title.title if prop.title_id else ''
+        if title_name:
+            parts.append(f'{title_name}: {prop.name}')
+        else:
+            parts.append(prop.name)
+    return '; '.join(parts) if parts else ''
 
 
 def property_in_stock_map(product: Product) -> dict:

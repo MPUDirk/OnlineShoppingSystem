@@ -215,6 +215,28 @@ class CartItem(models.Model):
 
         return format_property_summary(list(self.selected_property_ids or []))
 
+    def get_line_image_url(self):
+        """
+        Thumbnail for cart/checkout: first selected option with an image, else SKU-linked
+        property image, else product thumbnail.
+        """
+        ids = list(self.selected_property_ids or [])
+        if ids:
+            props = ProductProperty.objects.filter(pk__in=ids, title__product_id=self.product_id)
+            by_id = {p.pk: p for p in props}
+            for pid in ids:
+                p = by_id.get(pid)
+                if p and p.image:
+                    return p.image.url
+        sku = self.product_sku
+        if sku:
+            for link in sku.property_links.select_related('product_property').all():
+                if link.product_property.image:
+                    return link.product_property.image.url
+        if self.product.thumbnail:
+            return self.product.thumbnail.url
+        return None
+
 
 class Order(models.Model):
     """Order model (Block A, B - A11, A12, A13)"""

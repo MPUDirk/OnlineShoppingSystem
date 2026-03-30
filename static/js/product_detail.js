@@ -268,8 +268,37 @@
         applyVariantUi();
     };
 
+    /** Django-rendered radios: show option thumbnails in template; swap main image when swatch group has images. */
+    const initVariantSwatchPreview = () => {
+        const form = document.querySelector('.add-to-cart-actions');
+        const main = document.getElementById('product-main-image');
+        if (!form || !main) return;
+
+        const applyPreview = () => {
+            let url = null;
+            const primary = form.querySelector(
+                'fieldset[data-group-swatches="true"] input[type="radio"]:checked[data-preview-url]',
+            );
+            if (primary && primary.dataset.previewUrl) {
+                url = primary.dataset.previewUrl;
+            } else {
+                const any = form.querySelector('input[type="radio"]:checked[data-preview-url]');
+                if (any && any.dataset.previewUrl) url = any.dataset.previewUrl;
+            }
+            if (url) {
+                main.src = url;
+                main.alt = '';
+            }
+        };
+
+        form.querySelectorAll('input[type="radio"][name^="prop_"]').forEach((el) => {
+            el.addEventListener('change', applyPreview);
+        });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         initCarousel();
         initConfigurable();
+        initVariantSwatchPreview();
     });
 })();

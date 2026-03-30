@@ -74,15 +74,21 @@
                     {% for group in product.property_titles.all %}
                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">
                         {% if group.properties.count %}
-                        <fieldset style="margin: 0; border: none; padding: 0;">
+                        <fieldset class="product-variant-fieldset" style="margin: 0; border: none; padding: 0;" data-group-swatches="{% if group.is_default %}true{% else %}false{% endif %}">
                             <legend class="mb-2" style="font-size: 1rem; font-weight: 600;"><strong>{{ group.title }}</strong></legend>
-                            <div class="d-flex flex-column gap-1">
+                            <div class="d-flex flex-column gap-2">
                                 {% for prop in group.properties.all %}
-                                <label class="d-flex align-items-center gap-2" style="cursor: {% if prop.pk in oos_property_ids %}not-allowed{% else %}pointer{% endif %};">
+                                <label class="d-flex align-items-center gap-2 flex-wrap product-variant-option" style="cursor: {% if prop.pk in oos_property_ids %}not-allowed{% else %}pointer{% endif %};">
                                     <input type="radio" name="prop_{{ group.pk }}" value="{{ prop.pk }}"
                                         {% if prop.pk in oos_property_ids %}disabled{% endif %}
                                         {% if prop.pk in required_prop_ids %}required{% endif %}
+                                        {% if prop.image %}data-preview-url="{{ prop.image.url }}"{% endif %}
                                     />
+                                    {% if prop.image %}
+                                    <span class="product-variant-thumb flex-shrink-0 rounded border overflow-hidden bg-white" style="width: 52px; height: 52px;">
+                                        <img src="{{ prop.image.url }}" alt="{{ prop.name }}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+                                    </span>
+                                    {% endif %}
                                     <span>{% if prop.pk in oos_property_ids %}<span class="text-muted">Out of stock — </span>{% endif %}{{ prop.name }}{% if prop.change_value %} <span class="text-muted">(+${{ prop.change_value }})</span>{% endif %}</span>
                                 </label>
                                 {% endfor %}

@@ -43,18 +43,18 @@
                   </template>
                 </el-input>
             </div>
-            <el-table :data="tableData" hight="500">
-                <el-table-column prop="order_number" label="Order Number" width="250"/>
-                <el-table-column prop="purchase_date" label="Date" width="170" sortable/>
-                <el-table-column prop="customer" label="Customer" width="180"/>
-                <el-table-column label="Amount" width="200">
+            <el-table :data="tableData" style="width: 100%">
+                <el-table-column prop="order_number" label="Order Number" min-width="160" show-overflow-tooltip/>
+                <el-table-column prop="purchase_date" label="Date" min-width="150" sortable/>
+                <el-table-column prop="customer" label="Customer" min-width="120" show-overflow-tooltip/>
+                <el-table-column label="Amount" min-width="100" align="right">
                     <template #default="scope">
                         $[[ scope.row.total_amount ]]
                     </template>
                 </el-table-column>
                 <el-table-column
                     label="Status"
-                    width="220"
+                    min-width="120"
                     :filters="[
                         { text: 'Pending', value: 'Pending' },
                         { text: 'Hold', value: 'Hold' },
@@ -65,11 +65,11 @@
                     :filter-method="filterStatus"
                     filter-placement="bottom-end"
                 >
-                    <template #default=scope>
+                    <template #default="scope">
                         [[getStatus(scope.row.status, scope.row.is_finished)]]
                     </template>
                 </el-table-column>
-                <el-table-column fixed="right" label="Operations" min-width="200">
+                <el-table-column label="Operations" min-width="220" align="right" class-name="vendor-order-ops-col">
                     <template #default="scope">
                         <el-button link type="primary" size="small" @click="handleHref('/orders/'+scope.row.id)">Detail</el-button>
                         <el-button link type="primary" size="small" v-if="!isOperationUnavailable(scope.row.status, scope.row.is_finished)" @click="handleModal(scope.row.nxt_status, scope.row.id, 'btn-success', 'Are you sure to UPDATE status to '+scope.row.nxt_status)">Update</el-button>

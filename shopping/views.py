@@ -146,7 +146,9 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
 
     def get_queryset(self):
         cart, _ = ShoppingCart.objects.get_or_create(customer=self.request.user)
-        return CartItem.objects.filter(cart=cart).select_related('product', 'product_sku')
+        return CartItem.objects.filter(cart=cart).select_related('product', 'product_sku').prefetch_related(
+            'product_sku__property_links__product_property',
+        )
 
     def get_context_data(self, **kwargs):
         import json
@@ -164,6 +166,7 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
                 'configuration': get_configuration_label(sku) if sku else '',
                 'configuration_label': get_configuration_label(sku) if sku else '',
                 'outOfStock': bool(sku and not sku.in_stock),
+                'imageUrl': item.get_line_image_url() or '',
             }
         context['cart_line_meta_json'] = json.dumps(line_meta)
         return context
@@ -274,7 +277,11 @@ class CheckoutView(CustomerOnlyMixin, FormView):
     def _get_selected_items(self):
         """Return cart items to checkout. From GET ?items=1,2,3 or all if none."""
         cart, _ = ShoppingCart.objects.get_or_create(customer=self.request.user)
-        all_items = list(CartItem.objects.filter(cart=cart).select_related('product', 'product_sku'))
+        all_items = list(
+            CartItem.objects.filter(cart=cart)
+            .select_related('product', 'product_sku')
+            .prefetch_related('product_sku__property_links__product_property')
+        )
         ids = self.request.GET.getlist('items')
         if ids:
             try:
@@ -305,6 +312,7 @@ class CheckoutView(CustomerOnlyMixin, FormView):
                 'configuration': get_configuration_label(sku) if sku else '',
                 'configuration_label': get_configuration_label(sku) if sku else '',
                 'outOfStock': bool(sku and not sku.in_stock),
+                'imageUrl': item.get_line_image_url() or '',
             }
         context['checkout_line_meta_json'] = json.dumps(line_meta)
         return context

@@ -40,9 +40,16 @@
             <h3>Order Summary</h3>
             <ul style="list-style: none; padding: 0;">
                 {% for item in cart_items %}
-                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee;" data-checkout-line-id="{{ item.pk }}">
-                    <div>{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</div>
-                    <div class="line-item-meta" data-checkout-line></div>
+                <li style="padding: 0.5rem 0; border-bottom: 1px solid #eee; display: flex; align-items: flex-start; gap: 0.75rem;" data-checkout-line-id="{{ item.pk }}">
+                    {% with line_img=item.get_line_image_url %}
+                    <div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 4px; overflow: hidden; background: #f0f0f0;">
+                        <img src="{% if line_img %}{{ line_img }}{% elif item.product.thumbnail %}{{ item.product.thumbnail.url }}{% else %}https://via.placeholder.com/48?text=—{% endif %}" alt="" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </div>
+                    {% endwith %}
+                    <div style="flex: 1; min-width: 0;">
+                        <div>{{ item.product.name }} × {{ item.quantity }} — ${{ item.get_subtotal }}</div>
+                        <div class="line-item-meta" data-checkout-line></div>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -80,7 +87,7 @@
             var cfg = meta.configuration || meta.configuration_label || meta.config;
             var bits = [];
             if (sku) bits.push('SKU: <code>' + esc(sku) + '</code>');
-            if (cfg) bits.push('Configuration: ' + esc(cfg));
+            if (cfg) bits.push(esc(cfg));
             holder.innerHTML = bits.join(' · ');
         });
     });

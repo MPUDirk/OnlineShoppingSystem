@@ -8,7 +8,7 @@ function escCartMeta(s) {
 
 /**
  * Optional cart line display (D3/D4): reads #cart-line-meta-json keyed by cart line pk.
- * Example: {"12":{"sku":"TEE-WHITE-M","configuration":"White / M","outOfStock":false}}
+ * Example: {"12":{"sku":"TEE-WHITE-M","configuration":"Color: White; Size: M","outOfStock":false}}
  */
 function initCartLineMeta() {
     const el = document.getElementById('cart-line-meta-json');
@@ -24,6 +24,11 @@ function initCartLineMeta() {
         const meta = map[id];
         const holder = row.querySelector('[data-line-meta]');
         if (!holder || !meta) return;
+        const img = row.querySelector('.cart-line-img');
+        if (img && meta.imageUrl) {
+            img.src = meta.imageUrl;
+            img.alt = '';
+        }
         const sku = meta.sku || meta.sku_code;
         const cfg = meta.configuration || meta.configuration_label || meta.config;
         var parts = [];
@@ -31,7 +36,7 @@ function initCartLineMeta() {
             parts.push('<span class="cart-sku-line"><span class="text-muted">SKU:</span> <code class="cart-sku">' + escCartMeta(sku) + '</code></span>');
         }
         if (cfg) {
-            parts.push('<span class="cart-config-line"><span class="text-muted">Configuration:</span> ' + escCartMeta(cfg) + '</span>');
+            parts.push('<span class="cart-config-line">' + escCartMeta(cfg) + '</span>');
         }
         holder.innerHTML = parts.join(' ');
         if (meta.outOfStock) {
