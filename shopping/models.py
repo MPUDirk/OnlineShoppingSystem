@@ -140,18 +140,35 @@ class CartItem(models.Model):
         default=1,
         validators=[MinValueValidator(1)]
     )
+    # One ProductProperty id per attribute group (e.g. Type, Color), in group order
+    selected_property_ids = models.JSONField(default=list, blank=True)
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['cart', 'product']
+        indexes = [
+            models.Index(fields=['cart', 'product']),
+        ]
     
     def __str__(self):
         return f"{self.cart.customer.username} - {self.product.name} x{self.quantity}"
     
     def get_subtotal(self):
         """Calculate subtotal for this cart item (A8)"""
-        return self.product.price * self.quantity
+        unit = self.product.price
+        for pid in self.selected_property_ids or []:
+            try:
+                prop = ProductProperty.objects.get(pk=pid)
+            except ProductProperty.DoesNotExist:
+                continue
+            if prop.title.product_id == self.product_id:
+                unit += prop.change_value or 0
+        return unit * self.quantity
+
+    def get_property_summary_display(self) -> str:
+        from shopping.property_selection import format_property_summary
+
+        return format_property_summary(list(self.selected_property_ids or []))
 
 
 class Order(models.Model):
@@ -272,6 +289,7 @@ class OrderItem(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))]
     )
+    property_summary = models.CharField(max_length=500, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

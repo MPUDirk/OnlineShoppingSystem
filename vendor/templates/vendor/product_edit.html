@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Edit {{ product.name }} - Online Store{% endblock %}
 
 {% block external_mods %}
     <meta name="add-icon" content="{% static 'image/add.png' %}">
     <meta name="pk" content="{{ product.pk }}">
+    <meta name="property-title" content="{% if properties %}{{ properties.title }}{% endif %}">
 {% endblock %}
 
 {% block content %}
@@ -93,7 +95,7 @@
                            data-bs-toggle="tooltip"
                            data-bs-placement="top"
                            title="Enter a unique name for this property (1-50 characters)"
-                           value="{{ properties.title }}"
+                           value="{% if properties %}{{ properties.title }}{% endif %}"
                     >
                     <div class="form-check">
                         <input id="is-default" class="form-check-input" type="checkbox" name="is_default" {% if properties.is_default %}checked{% endif %}>
@@ -105,8 +107,8 @@
                     </div>
                 </form>
                 <div id="main_props" class="row gap-2">
-                    {% if not properties.properties.all.exists %}
-                    <form id="main_prop1" action="" class="col-auto d-flex flex-column" method="POST">
+                    {% if properties and not properties.properties.all.exists %}
+                    <form id="main_prop1" action="{% url 'vendor:property_edit' product.pk %}" class="col-auto d-flex flex-column" method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         <input type="hidden" name="title" value="{{ properties.title }}">
                         <input type="file" id="main_input1" name="image" class="d-none" accept="image/!*"
@@ -115,12 +117,12 @@
                                style="cursor: pointer; display: inline-block;">
                             <img id="main_image1" src="{% static 'image/add.png' %}" alt="add_img"
                                  style="width: 50px; height: 50px; object-fit: contain;"/>
-                            <button id="main_add_btn1"
+                            <button type="button" id="main_add_btn1"
                                     class="position-absolute top-0 start-100 translate-middle badge rounded-circle rounded-circle border-0 btn-success d-none"
                             >
                                 +
                             </button>
-                            <button id="main_del_btn1"
+                            <button type="button" id="main_del_btn1"
                                     class="position-absolute top-0 start-100 translate-middle badge rounded-pill border-0 btn-danger d-none">
                                 x
                             </button>
@@ -135,9 +137,15 @@
                                    data-bs-placement="top" title="SKU"
                                    style="width: 50px; font-size: 0.75rem">
                         </div>
+                        <button type="submit" class="btn btn-sm btn-primary mt-1">Save attribute</button>
                     </form>
                     {% endif %}
                 </div>
+                {% if properties %}
+                <p class="mt-2 mb-0">
+                    <a class="btn btn-outline-primary btn-sm" href="{% url 'vendor:property_edit' product.pk %}">Add another attribute option</a>
+                </p>
+                {% endif %}
             </div>
             <div class="form-group" style="margin-bottom: 1px">
                 <label for="subProp1" class="form-label d-none">Sub Properties</label>
@@ -162,11 +170,11 @@
 {% block extra_js %}
     <script>
         const is_img_data = {{ product.images.exists|lower }}
-        const is_prop_data = {{ product.properties.exists|lower }}
+        const is_prop_data = {{ product.property_titles.exists|lower }}
 
         function load_prop_data() {
             const prop_data = [
-                {% for prop in product.properties.all %}
+                {% for ptitle in product.property_titles.all %}{% for prop in ptitle.properties.all %}
                     {
                         {% if properties.is_default %}"img": "{{ prop.image.url }}",{% endif %}
                         "id": {{ prop.id }},
@@ -174,7 +182,7 @@
                         "change_value": {{ prop.change_value }},
                         "sku": "{{ prop.sku }}",
                     },
-                {% endfor %}
+                {% endfor %}{% endfor %}
             ];
             for (let i = 0; i < prop_data.length; i++) {
                 const prop = main_image_input(i+1);

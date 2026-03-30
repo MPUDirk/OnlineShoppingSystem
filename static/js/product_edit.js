@@ -1,19 +1,22 @@
+const propertyTitle = () =>
+    (document.querySelector('meta[name="property-title"]')?.getAttribute('content') || '').trim();
+
 const main_image_input = (i) => {
     const add_src = document.querySelector('meta[name="add-icon"]').content;
     const csrftoken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
     const res = document.createElement('form');
     res.innerHTML = `
         <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-        <input type="hidden" name="title" value="{{ properties.title }}">
+        <input type="hidden" name="title" value="${propertyTitle()}">
         <input type="file" id="main_input${i}" name="image" class="d-none" accept="image/!*" onChange="handleMainPropImageUpload(this)"/>
         <label for="main_input${i}" class="position-relative" style="cursor: pointer; display: inline-block;">
             <img id="main_image${i}" src="${add_src}" alt="add_img" style="width: 50px; height: 50px; object-fit: contain;"/>
-            <button id="main_add_btn${i}"
+            <button type="button" id="main_add_btn${i}"
                     class="position-absolute top-0 start-100 translate-middle badge rounded-circle rounded-circle border-0 btn-success d-none"
             >
                 +
             </button>
-            <button id="main_del_btn${i}"
+            <button type="button" id="main_del_btn${i}"
                     class="position-absolute top-0 start-100 translate-middle badge rounded-circle rounded-circle border-0 btn-danger d-none"
             >
                 x

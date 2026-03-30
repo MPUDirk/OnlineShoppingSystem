@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.db import transaction as db_transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
@@ -9,7 +10,17 @@ from OnlineShoppingSys.modules import CustomLoginRequiredMixin
 from user.models import Wallet, Transaction
 from vendor.views import OrderUpdateView
 from .forms import CartItemUpdateForm, CheckoutForm
-from .models import Product, ShoppingCart, CartItem, Order, OrderItem, Category, ProductImage, OrderStatusHistory
+from .property_selection import format_property_summary, parse_property_selection_from_post
+from .models import (
+    Product,
+    ShoppingCart,
+    CartItem,
+    Order,
+    OrderItem,
+    Category,
+    ProductImage,
+    OrderStatusHistory,
+)
 
 
 class IndexView(TemplateView):
@@ -55,7 +66,9 @@ class ProductDetailPageView(DetailView):
         """
         Public: only active products. Staff: any product. Vendor: active or own (preview off-shelf).
         """
-        qs = Product.objects.select_related('category')
+        qs = Product.objects.select_related('category').prefetch_related(
+            'property_titles__properties',
+        )
         user = self.request.user
         if user.is_authenticated and (user.is_staff or user.is_superuser):
             return qs
@@ -119,13 +132,24 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
         cart = ShoppingCart.objects.get(customer=self.request.user)
         product = get_object_or_404(Product, product_id=self.kwargs['pk'])
         quantity = form.cleaned_data['quantity']
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart, product=product,
-            defaults={'quantity': quantity}
+        selection = parse_property_selection_from_post(product, self.request.POST)
+        if selection is None:
+            messages.error(
+                self.request,
+                'Please choose an option for each attribute (for example Type).',
+            )
+            return redirect('shopping:product_detail', pk=product.pk)
+        for item in CartItem.objects.filter(cart=cart, product=product):
+            if list(item.selected_property_ids or []) == selection:
+                item.quantity += quantity
+                item.save()
+                return redirect(self.success_url)
+        CartItem.objects.create(
+            cart=cart,
+            product=product,
+            quantity=quantity,
+            selected_property_ids=selection,
         )
-        if not created:
-            cart_item.quantity += quantity
-            cart_item.save()
         return redirect(self.success_url)
 
 class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
@@ -240,8 +264,9 @@ class CheckoutView(CustomerOnlyMixin, FormView):
                     order=order,
                     product=item.product,
                     quantity=item.quantity,
-                    unit_price=item.product.price,
-                    subtotal=subtotal
+                    unit_price=item.get_subtotal() / item.quantity,
+                    subtotal=subtotal,
+                    property_summary=format_property_summary(item.selected_property_ids or []),
                 )
                 v_wallet, _ = Wallet.objects.get_or_create(user=vendor)
                 v_wallet.balance += subtotal

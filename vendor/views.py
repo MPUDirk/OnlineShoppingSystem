@@ -172,7 +172,13 @@ class ProductPropertyTitleEditView(ProductEditPermissionMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['product'] = self.get_object()
+        product = self.get_object()
+        context['product'] = product
+        context['form'] = ProductUpdateForm(instance=product)
+        try:
+            context['properties'] = ProductPropertyTitle.objects.get(product=product)
+        except ProductPropertyTitle.DoesNotExist:
+            context['properties'] = None
         return context
 
     def form_valid(self, form):
@@ -196,10 +202,15 @@ class ProductPropertyTitleDeleteView(ProductEditPermissionMixin, DeleteView):
 class ProductPropertyEditView(ProductEditPermissionMixin, FormView):
     model = ProductProperty
     form_class = PropertyEditForm
-    template_name = 'vendor/product_edit.html'
+    template_name = 'vendor/property_submit.html'
 
     def get_object(self, queryset=None):
         return Product.objects.get(id=self.kwargs['pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['product'] = self.get_object()
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -89,24 +89,37 @@ class PropertyEditForm(forms.ModelForm):
         model = ProductProperty
         fields = ['name', 'change_value', 'sku']
 
-    title = forms.CharField(max_length=50)
-    name = forms.CharField(required=True)
-    sku = forms.IntegerField(required=True, validators=[MinValueValidator(0)])
+    title = forms.CharField(max_length=50, help_text='Must match your “Main Properties” title for this product.')
+    image = forms.ImageField(required=False)
+
+    def __init__(self, *args, product=None, **kwargs):
+        self.product = product
+        super().__init__(*args, **kwargs)
 
     def clean_title(self):
+        if not self.product:
+            raise forms.ValidationError('Missing product.')
         try:
-            return ProductPropertyTitle.objects.get(title=self.cleaned_data['title'])
+            return ProductPropertyTitle.objects.get(
+                product=self.product,
+                title=self.cleaned_data['title'],
+            )
         except ProductPropertyTitle.DoesNotExist:
-            raise forms.ValidationError('Invalid title')
+            raise forms.ValidationError(
+                'No property group with this title. Save “Main Properties” on the product edit page first.'
+            )
 
-    def save(self, commit = True):
-        instance, _ = ProductProperty.objects.get_or_create(title=self.cleaned_data['title'], defaults= {
-            'name': self.cleaned_data['name'],
-            'sku': self.cleaned_data['sku'],
-        })
-        if self.cleaned_data.get('image') and self.cleaned_data['title'].is_default:
+    def save(self, commit=True):
+        title_obj = self.cleaned_data['title']
+        instance = ProductProperty(
+            title=title_obj,
+            name=self.cleaned_data['name'],
+            sku=self.cleaned_data['sku'],
+            change_value=self.cleaned_data.get('change_value') or 0,
+        )
+        if self.cleaned_data.get('image') and title_obj.is_default:
             instance.image = self.cleaned_data['image']
         else:
-            instance.image = instance.title.product.thumbnail
+            instance.image = title_obj.product.thumbnail
         instance.save()
         return instance
