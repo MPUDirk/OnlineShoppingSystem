@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Orders - Vendor{% endblock %}
+
+{% block external_mods %}
+    <link rel="stylesheet" href="https://unpkg.com/element-plus@2.13.6/dist/index.css">
+    <script src="https://unpkg.com/vue@3.5.30/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus@2.13.6/dist/index.full.js"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue@2.3.2/dist/index.iife.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    {% include 'modules/modal.html' with title="Confirm Operations" conf_btn_label="Submit" %}
+    <div id="app" class="card">
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        const False = false;
+        const True = true;
+        const data = {{ js_orders|safe }}
+
+        const {createApp, ref} = Vue;
+
+        const app = createApp({
+            delimiters: ['[[', ']]'],
+            template: `
+            <h1>Order Operations for Vendor</h1>
+            {% csrf_token %}
+            <div class="mb-2">
+                <el-input
+                  v-model="search"
+                  style="max-width: 600px"
+                  placeholder="Please input order number or username"
+                  class="input-with-select"
+                >
+                  <template #append>
+                    <el-button-group>
+                        <el-button @click="searchTable"><el-icon><Search /></el-icon></el-button>
+                        <el-button @click="cleanTable"><el-icon><DeleteFilled /></el-icon></el-button>
+                    </el-button-group>
+                  </template>
+                </el-input>
+            </div>
+            <el-table :data="tableData" hight="500">
+                <el-table-column prop="order_number" label="Order Number" width="250"/>
+                <el-table-column prop="customer" label="Customer" width="180"/>
+                <el-table-column label="Amount" width="200">
+                    <template #default="scope">
+                        $[[ scope.row.total_amount ]]
+                    </template>
+                </el-table-column>
+                <el-table-column
+                    label="Status"
+                    width="220"
+                    :filters="[
+                        { text: 'Pending', value: 'Pending' },
+                        { text: 'Hold', value: 'Hold' },
+                        { text: 'Shipped', value: 'Shipped' },
+                        { text: 'Delivered', value: 'Delivered' },
+                        { text: 'Cancelled', value: 'Cancelled' },
+                    ]"
+                    :filter-method="filterStatus"
+                    filter-placement="bottom-end"
+                >
+                    <template #default=scope>
+                        [[getStatus(scope.row.status, scope.row.is_finished)]]
+                    </template>
+                </el-table-column>
+                <el-table-column fixed="right" label="Operations" min-width="200">
+                    <template #default="scope">
+                        <el-button link type="primary" size="small" @click="handleHref('/orders/'+scope.row.id)">Detail</el-button>
+                        <el-button link type="primary" size="small" v-if="!isOperationUnavailable(scope.row.status, scope.row.is_finished)" @click="handleModal(scope.row.nxt_status, scope.row.id, 'btn-success', 'Are you sure to UPDATE status to '+scope.row.nxt_status)">Update</el-button>
+                        <el-button link type="primary" size="small" v-if="!isOperationUnavailable(scope.row.status, scope.row.is_finished)" @click="handleModal('hold', scope.row.id, 'btn-warning', 'Are you sure to HOLD the order')">Hold</el-button>
+                        <el-button link type="primary" size="small" v-if="scope.row.status === 'Hold'" @click="handleModal('hold', scope.row.id, 'btn-warning', 'Are you sure to HOLD the order')">unHold</el-button>
+                        <el-button link type="primary" size="small" v-if="!isOperationUnavailable(scope.row.status, scope.row.is_finished)" @click="handleModal('cancelled', scope.row.id, 'btn-danger', 'Are you sure to CANCEL the order')">Cancel</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            `,
+            data() {
+                return {
+                    tableData: data,
+                    search: ''
+                }
+            },
+            methods: {
+                handleHref(href) {
+                    window.location.href = href;
+                },
+                handleModal(status ,oid, color, message) {
+                    const modal = new bootstrap.Modal(document.getElementById('exampleModal'));
+                    const conf_btn = document.getElementById('confirm_btn');
+                    const msg = document.querySelector('div.modal-body');
+
+                    tempForm.action = `/vendor/orders/${oid}/update/`;
+
+                    const status_input = document.createElement('input');
+                    status_input.name = "status";
+                    status_input.value = status;
+
+                    tempForm.appendChild(status_input);
+
+                    conf_btn.classList = "btn "+color;
+                    msg.innerHTML = message;
+
+                    modal.show();
+                },
+                filterStatus(value, row) {
+                    return row.status === value;
+                },
+                searchTable() {
+                    this.tableData = data.filter(row => {
+                        return row.order_number.toLowerCase().includes(this.search.toLowerCase()) || row.customer.toLowerCase().includes(this.search.toLowerCase())
+                    });
+                },
+                cleanTable() {
+                    this.search = '';
+                    this.tableData = data;
+                },
+                isOperationUnavailable(status, is_finished) {
+                    return status === 'Hold' || status === 'Cancelled' || is_finished
+                },
+                getStatus(status, is_finished) {
+                    return is_finished ? 'Finished' : status;
+                }
+            }
+        });
+
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus)
+        app.mount('#app')
+    </script>
+    <script src="{% static 'js/v_order_list.js' %}"></script>
+{% endblock %}

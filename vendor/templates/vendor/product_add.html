@@ -2,6 +2,10 @@
 
 {% block title %}Add Product - Online Store{% endblock %}
 
+{% block external_mods %}
+    <meta name="add-icon" content="{% static 'image/add.png' %}">
+{% endblock %}
+
 {% block content %}
     <div class="card">
         <h2>Add Product</h2>
@@ -64,5 +68,9 @@
     </div>
 {% endblock %}
 {% block extra_js %}
+    <script>
+        const is_img_data = false;
+        const load_img_data = () => {};
+    </script>
     <script src="{% static 'js/product_imgs.js' %}"></script>
 {% endblock %}
