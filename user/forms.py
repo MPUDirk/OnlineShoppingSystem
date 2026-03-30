@@ -33,6 +33,21 @@ class SignUpForm(forms.ModelForm):
         required=True,
         initial='customer'
     )
+    shipping_address = forms.CharField(
+        label='Shipping address',
+        required=True,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Street, city, state / region, postal code',
+        }),
+    )
+
+    def clean_shipping_address(self):
+        addr = (self.cleaned_data.get('shipping_address') or '').strip()
+        if not addr:
+            raise forms.ValidationError('Please enter your shipping address.')
+        return addr
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
@@ -50,6 +65,7 @@ class SignUpForm(forms.ModelForm):
 
     def save(self, commit=True):
         user_type = self.cleaned_data.pop('user_type')
+        shipping_address = self.cleaned_data.pop('shipping_address')
         user = User.objects.create_user(**self.cleaned_data)
 
         if user_type == 'customer':
@@ -61,6 +77,11 @@ class SignUpForm(forms.ModelForm):
             user.groups.add(vendor_group)
 
         Wallet.objects.get_or_create(user=user)
+        ShippingAddress.objects.create(
+            user=user,
+            address=shipping_address.strip(),
+            is_default=True,
+        )
         return user
 
 

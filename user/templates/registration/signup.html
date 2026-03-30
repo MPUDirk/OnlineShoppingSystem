@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Sign Up - Online Store{% endblock %}
 
@@ -38,6 +39,13 @@
                 <div class="form-group">
                     <label for="regConfirmPassword" class="form-label">Confirm Password</label>
                     <input type="password" class="form-control" id="regConfirmPassword" name="confirm_password" value="{{ form.password.value|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="regShippingAddress" class="form-label">Shipping address</label>
+                    <textarea class="form-control" id="regShippingAddress" name="shipping_address" rows="4" placeholder="Street, city, state / region, postal code" required>{{ form.shipping_address.value|default:'' }}</textarea>
+                    {% if form.shipping_address.errors %}
+                        <div class="text-danger small">{{ form.shipping_address.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 <div class="form-group">
                     <label class="form-label">Account Type</label>
