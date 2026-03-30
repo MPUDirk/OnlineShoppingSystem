@@ -31,6 +31,9 @@ class ProductBaseForm(forms.ModelForm):
         self.fields['category'].required = False
         self.fields['category'].empty_label = '-- Select category (optional) --'
 
+    def clean_image1(self):
+        return self.cleaned_data.get('image1')
+
     def save(self, commit=True):
         images = [self.cleaned_data.get(f'image{i}') for i in range(1, 6) if self.cleaned_data.get(f'image{i}')]
         with (db_transaction.atomic()):
@@ -48,6 +51,12 @@ class ProductUpdateForm(ProductBaseForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['thumbnail'].required = False
+        self.fields['image1'].required = False
+
+    def clean_image1(self):
+        if 'image1' not in self.changed_data:
+            return ''
+        return super().clean_image1()
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -52,7 +52,16 @@ class ProductDetailPageView(DetailView):
     context_object_name = 'product'
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True).select_related('category')
+        """
+        Public: only active products. Staff: any product. Vendor: active or own (preview off-shelf).
+        """
+        qs = Product.objects.select_related('category')
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            return qs
+        if user.is_authenticated and user.groups.filter(name='Vendor').exists():
+            return qs.filter(Q(is_active=True) | Q(created_by=user))
+        return qs.filter(is_active=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
