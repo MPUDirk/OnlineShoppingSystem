@@ -277,7 +277,20 @@ class OrderListView(CustomerOnlyMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Order.objects.filter(customer=self.request.user).order_by('-purchase_date')
+        qs = Order.objects.filter(customer=self.request.user).order_by('-purchase_date')
+        status = self.request.GET.get('status', '').strip()
+        valid_statuses = {c[0] for c in Order.ORDER_STATUS_CHOICES}
+        if status and status in valid_statuses:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        raw = self.request.GET.get('status', '').strip()
+        valid_statuses = {c[0] for c in Order.ORDER_STATUS_CHOICES}
+        context['status_filter'] = raw if raw in valid_statuses else ''
+        context['order_status_choices'] = Order.ORDER_STATUS_CHOICES
+        return context
 
 
 class OrderDetailView(DetailView):

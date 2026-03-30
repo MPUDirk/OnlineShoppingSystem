@@ -6,6 +6,18 @@
 {% include 'modules/modal.html' with title="Cancel Order" message="Are you sure you want to cancel this order?" conf_btn_color="btn-danger" conf_btn_label="Cancel" %}
 <div class="card">
     <h2>My Orders</h2>
+    <form method="get" class="mb-3 d-flex flex-wrap align-items-end gap-2" action="{% url 'shopping:order_list' %}" id="order-status-filter">
+        <div>
+            <label for="id_order_status" class="form-label mb-0 small text-muted">Filter by status</label>
+            <select name="status" id="id_order_status" class="form-select form-select-sm" style="width: auto; min-width: 12rem;" onchange="this.form.submit()">
+                <option value="" {% if not status_filter %}selected{% endif %}>All orders</option>
+                {% for value, label in order_status_choices %}
+                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
+    </form>
     {% if orders %}
     <ul style="list-style: none; padding: 0;">
         {% for order in orders %}
@@ -32,14 +44,16 @@
     {% if page_obj.has_other_pages %}
     <nav style="margin-top: 2rem; display: flex; justify-content: center; gap: 0.5rem;">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">Previous</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&amp;status={{ status_filter|urlencode }}{% endif %}" class="btn btn-secondary">Previous</a>
         {% endif %}
         <span style="align-self: center;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&amp;status={{ status_filter|urlencode }}{% endif %}" class="btn btn-secondary">Next</a>
         {% endif %}
     </nav>
     {% endif %}
+    {% elif status_filter %}
+    <p style="color: #666; padding: 2rem;">No orders with status &ldquo;{% for v, lbl in order_status_choices %}{% if v == status_filter %}{{ lbl }}{% endif %}{% endfor %}&rdquo;. <a href="{% url 'shopping:order_list' %}">Show all orders</a></p>
     {% else %}
     <p style="color: #666; padding: 2rem;">No orders yet. <a href="{% url 'shopping:product_list' %}">Start shopping</a></p>
     {% endif %}
