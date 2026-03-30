@@ -1,15 +1,19 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView, FormView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from shopping.models import Product, Order, OrderStatusHistory, ProductPropertyTitle, ProductProperty
+from shopping.models import Product, Order, OrderStatusHistory, ProductPropertyTitle, ProductProperty, ProductSKU
+from shopping.sku_catalog import get_configuration_label
 from user.models import Wallet, Transaction
-from .forms import ProductCreateForm, ProductUpdateForm, PropertyTitleEditForm, PropertyEditForm
+from .forms import ProductCreateForm, ProductUpdateForm, PropertyTitleForm, PropertyOptionForm
 
 
 class VendorOrAdminRequiredMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
@@ -29,7 +33,7 @@ class ProductEditPermissionMixin(CustomLoginRequiredMixin, UserPassesTestMixin):
             return True
         if not self.request.user.groups.filter(name='Vendor').exists():
             return False
-        product = Product.objects.get(id=self.kwargs['pk'])
+        product = get_object_or_404(Product, pk=self.kwargs['pk'])
         return product.created_by_id == self.request.user.id
 
     def dispatch(self, request, *args, **kwargs):
@@ -77,11 +81,20 @@ class VendorOrderListView(VendorOrAdminRequiredMixin, ListView):
 
     @staticmethod
     def get_js_orders(orders, user) -> list:
+        def fmt_purchase_date(o):
+            if not o.purchase_date:
+                return ''
+            dt = o.purchase_date
+            if timezone.is_aware(dt):
+                dt = timezone.localtime(dt)
+            return dt.strftime('%Y-%m-%d %H:%M')
+
         return [
             {
                 'id': o.id,
                 'customer': o.customer.username,
                 'order_number': o.order_number,
+                'purchase_date': fmt_purchase_date(o),
                 'total_amount': float(o.get_vendor_amount(user)),
                 'status': o.get_status_display(),
                 'nxt_status': o.get_next_status(),
@@ -156,83 +169,131 @@ class ProductCreateView(VendorOrAdminRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ProductPropertyTitleEditView(ProductEditPermissionMixin, FormView):
+class ProductPropertyTitleCreateView(ProductEditPermissionMixin, CreateView):
     model = ProductPropertyTitle
-    form_class = PropertyTitleEditForm
-    template_name = 'vendor/product_edit.html'
-    context_object_name = 'property_title'
+    form_class = PropertyTitleForm
+    template_name = 'vendor/property_type_form.html'
 
-    def get_object(self, queryset=None):
-        return Product.objects.get(id=self.kwargs['pk'])
+    def get_product(self):
+        return get_object_or_404(Product, pk=self.kwargs['pk'])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['product'] = self.get_object()
+        kwargs['product'] = self.get_product()
         return kwargs
+
+    def form_valid(self, form):
+        form.instance.product = self.get_product()
+        messages.success(self.request, f'Attribute type “{form.instance.title}” added.')
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        product = self.get_object()
-        context['product'] = product
-        context['form'] = ProductUpdateForm(instance=product)
-        try:
-            context['properties'] = ProductPropertyTitle.objects.get(product=product)
-        except ProductPropertyTitle.DoesNotExist:
-            context['properties'] = None
+        context['product'] = self.get_product()
+        context['form_heading'] = 'Add attribute type'
         return context
 
+    def get_success_url(self):
+        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
+
+class ProductPropertyTitleUpdateView(ProductEditPermissionMixin, UpdateView):
+    model = ProductPropertyTitle
+    form_class = PropertyTitleForm
+    template_name = 'vendor/property_type_form.html'
+    pk_url_kwarg = 'title_pk'
+
+    def get_queryset(self):
+        return ProductPropertyTitle.objects.filter(product_id=self.kwargs['pk'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['product'] = self.get_object().product
+        return kwargs
+
     def form_valid(self, form):
-        form.save()
+        messages.success(self.request, 'Attribute type updated.')
         return super().form_valid(form)
 
-    def get_success_url(self):
-        return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
-
-class ProductPropertyTitleDeleteView(ProductEditPermissionMixin, DeleteView):
-    model = ProductPropertyTitle
-    context_object_name = 'property_title'
-    success_url = reverse_lazy('vendor:product_edit')
-
-    def get_object(self, queryset=None):
-        return ProductPropertyTitle.objects.get(product__id=self.kwargs['pk'])
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = self.get_object().product
+        context['form_heading'] = 'Edit attribute type'
+        return context
 
     def get_success_url(self):
         return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
 
-class ProductPropertyEditView(ProductEditPermissionMixin, FormView):
+
+class ProductPropertyTitleDeleteView(ProductEditPermissionMixin, View):
+    def post(self, request, pk, title_pk):
+        ptitle = get_object_or_404(ProductPropertyTitle, pk=title_pk, product_id=pk)
+        name = ptitle.title
+        ptitle.delete()
+        messages.success(request, f'Attribute type “{name}” and its options were removed.')
+        return redirect('vendor:product_edit', pk=pk)
+
+
+class ProductPropertyCreateView(ProductEditPermissionMixin, CreateView):
     model = ProductProperty
-    form_class = PropertyEditForm
+    form_class = PropertyOptionForm
     template_name = 'vendor/property_submit.html'
 
-    def get_object(self, queryset=None):
-        return Product.objects.get(id=self.kwargs['pk'])
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['product'] = self.get_object()
-        return kwargs
+    def dispatch(self, request, *args, **kwargs):
+        self.title_obj = get_object_or_404(
+            ProductPropertyTitle,
+            pk=self.kwargs['title_pk'],
+            product_id=self.kwargs['pk'],
+        )
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['product'] = self.get_object()
+        context['product'] = self.title_obj.product
+        context['form_heading'] = f'Add option — {self.title_obj.title}'
         return context
 
     def form_valid(self, form):
-        form.save()
+        form.instance.title = self.title_obj
+        if not self.request.FILES.get('image'):
+            form.instance.image = self.title_obj.product.thumbnail
+        messages.success(self.request, 'Option added.')
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
 
-class ProductPropertyDeleteView(ProductEditPermissionMixin, DeleteView):
-    model = ProductProperty
-    context_object_name = 'property'
 
-    def get_object(self, queryset=None):
-        return ProductProperty.objects.get(id=self.kwargs['pk'])
+class ProductPropertyUpdateView(ProductEditPermissionMixin, UpdateView):
+    model = ProductProperty
+    form_class = PropertyOptionForm
+    template_name = 'vendor/property_submit.html'
+    pk_url_kwarg = 'prop_pk'
+
+    def get_queryset(self):
+        return ProductProperty.objects.filter(title__product_id=self.kwargs['pk'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = self.object.title.product
+        context['form_heading'] = f'Edit option — {self.object.title.title}'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Option updated.')
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse('vendor:product_edit', kwargs={'pk': self.kwargs['pk']})
+
+
+class ProductPropertyDeleteView(ProductEditPermissionMixin, View):
+    def post(self, request, pk, prop_pk):
+        prop = get_object_or_404(ProductProperty, pk=prop_pk, title__product_id=pk)
+        label = prop.name
+        prop.delete()
+        messages.success(request, f'Option “{label}” removed.')
+        return redirect('vendor:product_edit', pk=pk)
 
 class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
     model = Product
@@ -242,10 +303,11 @@ class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['product'] = self.get_object()
-        try:
-            context['properties'] = ProductPropertyTitle.objects.get(product=self.object)
-        except ProductPropertyTitle.DoesNotExist:
-            context['properties'] = None
+        context['property_groups'] = (
+            ProductPropertyTitle.objects.filter(product=self.object)
+            .prefetch_related('properties')
+            .order_by('pk')
+        )
         return context
 
     def get_success_url(self):
@@ -257,3 +319,35 @@ class ProductDeleteView(ProductEditPermissionMixin, DeleteView):
 
     def get_object(self, queryset=None):
         return Product.objects.get(id=self.kwargs['pk'])
+
+
+class ProductSkuListView(ProductEditPermissionMixin, ListView):
+    """D4: list SKU rows per product; toggle stock on detail page."""
+    model = ProductSKU
+    template_name = 'vendor/product_skus.html'
+    context_object_name = 'skus'
+
+    def get_queryset(self):
+        return ProductSKU.objects.filter(product_id=self.kwargs['pk']).prefetch_related(
+            'property_links__product_property__title',
+        ).order_by('sku')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['product'] = get_object_or_404(Product, pk=self.kwargs['pk'])
+        context['sku_rows'] = [
+            {'obj': s, 'label': get_configuration_label(s)} for s in context['skus']
+        ]
+        return context
+
+
+class ProductSkuToggleStockView(ProductEditPermissionMixin, View):
+    def post(self, request, pk, sku_pk):
+        sku = get_object_or_404(ProductSKU, pk=sku_pk, product_id=pk)
+        sku.in_stock = not sku.in_stock
+        sku.save(update_fields=['in_stock'])
+        messages.success(
+            request,
+            f'SKU {sku.sku} is now {"in stock" if sku.in_stock else "out of stock"}.',
+        )
+        return redirect('vendor:product_skus', pk=pk)

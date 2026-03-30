@@ -51,8 +51,8 @@
             {% for item in items %}
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 0.75rem;"><a href="{% url 'shopping:product_detail' item.product.pk %}" style="color: #0d6efd; text-decoration: none;">{{ item.product.name }}</a></td>
-                <td style="padding: 0.75rem; font-family: ui-monospace, monospace; color: #555;">—</td>
-                <td style="padding: 0.75rem; color: #555;">{{ item.property_summary|default:"—" }}</td>
+                <td style="padding: 0.75rem; font-family: ui-monospace, monospace; color: #555;">{{ item.sku_code|default:"—" }}</td>
+                <td style="padding: 0.75rem; color: #555;">{% if item.configuration_label %}{{ item.configuration_label }}{% else %}{{ item.property_summary|default:"—" }}{% endif %}</td>
                 <td style="padding: 0.75rem; text-align: right;">{{ item.quantity }}</td>
                 <td style="padding: 0.75rem; text-align: right;">${{ item.unit_price }}</td>
                 <td style="padding: 0.75rem; text-align: right;">${{ item.subtotal }}</td>

@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
     'user',
-    'shopping',
+    'shopping.apps.ProductsConfig',
     'vendor',
 ]
 

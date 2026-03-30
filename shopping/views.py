@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.db import transaction as db_transaction
 from django.db.models import Q
@@ -11,6 +13,13 @@ from user.models import Wallet, Transaction
 from vendor.views import OrderUpdateView
 from .forms import CartItemUpdateForm, CheckoutForm
 from .property_selection import format_property_summary, parse_property_selection_from_post
+from .sku_catalog import (
+    find_sku_for_selection,
+    get_configuration_label,
+    get_groups_with_options,
+    property_in_stock_map,
+    ensure_default_sku,
+)
 from .models import (
     Product,
     ShoppingCart,
@@ -94,6 +103,39 @@ class ProductDetailPageView(DetailView):
         else:
             can_edit = False
         context['can_edit'] = can_edit
+        ensure_default_sku(product)
+        stock_map = property_in_stock_map(product)
+        context['property_in_stock_map'] = stock_map
+        oos_ids = {pid for pid, ok in stock_map.items() if not ok}
+        context['oos_property_ids'] = list(oos_ids)
+        groups = get_groups_with_options(product)
+        context['groups_with_options'] = groups
+        required_radio = {}
+        groups_all_oos = []
+        for title in groups:
+            props = list(title.properties.all())
+            first_in_stock = None
+            for p in props:
+                if p.pk not in oos_ids:
+                    first_in_stock = p.pk
+                    break
+            if first_in_stock is not None:
+                required_radio[title.pk] = first_in_stock
+            elif props:
+                groups_all_oos.append(title.pk)
+        context['required_radio_for_group'] = required_radio
+        context['required_prop_ids'] = set(required_radio.values())
+        context['groups_all_options_oos'] = groups_all_oos
+        if not groups:
+            sku = find_sku_for_selection(product, [])
+            context['simple_sku_in_stock'] = bool(sku and sku.in_stock)
+        else:
+            context['simple_sku_in_stock'] = True
+        context['product_config_json'] = json.dumps({
+            'simpleInStock': context['simple_sku_in_stock'],
+            'hasConfigurableOptions': bool(groups),
+            'cannotAddConfigurable': bool(groups_all_oos),
+        })
         return context
 
 
@@ -104,13 +146,26 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
 
     def get_queryset(self):
         cart, _ = ShoppingCart.objects.get_or_create(customer=self.request.user)
-        return CartItem.objects.filter(cart=cart).select_related('product')
+        return CartItem.objects.filter(cart=cart).select_related('product', 'product_sku')
 
     def get_context_data(self, **kwargs):
+        import json
+
         context = super().get_context_data(**kwargs)
         cart_items = context['cart_items']
         cart = ShoppingCart.objects.filter(customer=self.request.user).first()
         context['cart_total'] = cart.get_total() if cart else 0
+        line_meta = {}
+        for item in cart_items:
+            sku = item.product_sku
+            line_meta[str(item.pk)] = {
+                'sku': sku.sku if sku else '',
+                'sku_code': sku.sku if sku else '',
+                'configuration': get_configuration_label(sku) if sku else '',
+                'configuration_label': get_configuration_label(sku) if sku else '',
+                'outOfStock': bool(sku and not sku.in_stock),
+            }
+        context['cart_line_meta_json'] = json.dumps(line_meta)
         return context
 
 class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
@@ -139,16 +194,32 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
                 'Please choose an option for each attribute (for example Type).',
             )
             return redirect('shopping:product_detail', pk=product.pk)
+        ensure_default_sku(product)
+        sku = find_sku_for_selection(product, selection)
+        if sku is None:
+            messages.error(
+                self.request,
+                'No SKU is configured for this combination. Ask the seller to add SKUs in the vendor portal.',
+            )
+            return redirect('shopping:product_detail', pk=product.pk)
+        if not sku.in_stock:
+            messages.error(
+                self.request,
+                'This option is out of stock and cannot be added to the cart.',
+            )
+            return redirect('shopping:product_detail', pk=product.pk)
         for item in CartItem.objects.filter(cart=cart, product=product):
             if list(item.selected_property_ids or []) == selection:
                 item.quantity += quantity
-                item.save()
+                item.product_sku = sku
+                item.save(update_fields=['quantity', 'product_sku', 'updated_at'])
                 return redirect(self.success_url)
         CartItem.objects.create(
             cart=cart,
             product=product,
             quantity=quantity,
             selected_property_ids=selection,
+            product_sku=sku,
         )
         return redirect(self.success_url)
 
@@ -203,7 +274,7 @@ class CheckoutView(CustomerOnlyMixin, FormView):
     def _get_selected_items(self):
         """Return cart items to checkout. From GET ?items=1,2,3 or all if none."""
         cart, _ = ShoppingCart.objects.get_or_create(customer=self.request.user)
-        all_items = list(CartItem.objects.filter(cart=cart).select_related('product'))
+        all_items = list(CartItem.objects.filter(cart=cart).select_related('product', 'product_sku'))
         ids = self.request.GET.getlist('items')
         if ids:
             try:
@@ -217,12 +288,25 @@ class CheckoutView(CustomerOnlyMixin, FormView):
         return all_items
 
     def get_context_data(self, **kwargs):
+        import json
+
         context = super().get_context_data(**kwargs)
         cart_items = self._get_selected_items()
         context['cart_items'] = cart_items
         context['cart_total'] = sum(item.get_subtotal() for item in cart_items)
         wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
         context['wallet'] = wallet
+        line_meta = {}
+        for item in cart_items:
+            sku = item.product_sku
+            line_meta[str(item.pk)] = {
+                'sku': sku.sku if sku else '',
+                'sku_code': sku.sku if sku else '',
+                'configuration': get_configuration_label(sku) if sku else '',
+                'configuration_label': get_configuration_label(sku) if sku else '',
+                'outOfStock': bool(sku and not sku.in_stock),
+            }
+        context['checkout_line_meta_json'] = json.dumps(line_meta)
         return context
 
     def form_valid(self, form):
@@ -233,9 +317,25 @@ class CheckoutView(CustomerOnlyMixin, FormView):
                 ids = [int(x) for x in ids if x]
             except (ValueError, TypeError):
                 ids = []
-        cart_items = list(CartItem.objects.filter(cart=cart, pk__in=ids).select_related('product')) if ids else list(CartItem.objects.filter(cart=cart).select_related('product'))
+        cart_items = list(
+            CartItem.objects.filter(cart=cart, pk__in=ids).select_related('product', 'product_sku')
+        ) if ids else list(CartItem.objects.filter(cart=cart).select_related('product', 'product_sku'))
         if not cart_items:
             return redirect('shopping:shopping_cart')
+
+        for item in cart_items:
+            if not item.product_sku_id:
+                messages.error(
+                    self.request,
+                    'Your cart has a line without a valid SKU. Remove it or re-add the product.',
+                )
+                return redirect('shopping:shopping_cart')
+            if not item.product_sku.in_stock:
+                messages.error(
+                    self.request,
+                    'One or more items are out of stock. Update your cart before checkout.',
+                )
+                return redirect('shopping:shopping_cart')
 
         total = sum(item.get_subtotal() for item in cart_items)
         c_wallet, _ = Wallet.objects.get_or_create(user=self.request.user)
@@ -260,13 +360,20 @@ class CheckoutView(CustomerOnlyMixin, FormView):
                     status='pending',
                     note=f'{order.order_number} created by {self.request.user.username}'
                 )
+                sku = item.product_sku
+                cfg = get_configuration_label(sku) if sku else format_property_summary(
+                    item.selected_property_ids or []
+                )
                 OrderItem.objects.create(
                     order=order,
                     product=item.product,
                     quantity=item.quantity,
                     unit_price=item.get_subtotal() / item.quantity,
                     subtotal=subtotal,
-                    property_summary=format_property_summary(item.selected_property_ids or []),
+                    property_summary=cfg,
+                    product_sku=sku,
+                    sku_code=sku.sku if sku else '',
+                    configuration_label=cfg,
                 )
                 v_wallet, _ = Wallet.objects.get_or_create(user=vendor)
                 v_wallet.balance += subtotal

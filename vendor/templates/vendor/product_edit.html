@@ -6,14 +6,18 @@
 {% block external_mods %}
     <meta name="add-icon" content="{% static 'image/add.png' %}">
     <meta name="pk" content="{{ product.pk }}">
-    <meta name="property-title" content="{% if properties %}{{ properties.title }}{% endif %}">
 {% endblock %}
 
 {% block content %}
 <div class="card position-relative">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} mb-3" role="alert">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
     <h2>Edit Product</h2>
     <div class="row">
-        <form method="post" class="col gap-2" enctype="multipart/form-data">
+        <form id="vendor-product-form" method="post" class="col gap-2" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="id_name" class="form-label">Product Name</label>
@@ -30,15 +34,12 @@
                 {% endif %}
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="id_total_sku" class="form-label">Total SKU</label>
-                {{ form.total_sku }}
-                {% if form.total_sku.errors %}
-                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.total_sku.errors.0 }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
-                <img src="{{ product.thumbnail.url }}" alt="{{ product.name }}">
+                <span class="form-label d-block">Thumbnail Image</span>
+                <img src="{{ product.thumbnail.url }}" alt="{{ product.name }}" class="mb-2 d-block" style="max-width: 120px;">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="product-thumbnail-choose-btn">Choose file</button>
+                    <span class="text-muted small" id="product-thumbnail-filename">No file chosen</span>
+                </div>
                 {{ form.thumbnail }}
                 {% if form.thumbnail.errors %}
                     <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
@@ -65,103 +66,55 @@
                     <span style="margin-left: 0.5rem;">Active (visible to customers)</span>
                 </label>
             </div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="{% url 'vendor:product_skus' product.pk %}" class="btn btn-outline-primary">SKU inventory</a>
                 <a href="{% url 'shopping:product_detail' product.id %}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
         <div class="col">
-            <div class="form-group mb-5" style="margin-bottom: 1px">
-                 <form id="prop_title" class="mb-3" action="{% if properties %}{% url 'vendor:property_title_del' product.id %}{% else %}{% url 'vendor:property_title_edit' product.id %}{% endif %}" method="POST">
-                    <div class="d-flex flex-row align-items-center gap-2">
-                        <label for="title" class="form-label m-0">Main Properties</label>
-                        <button id="delete_property_btn" class="btn btn-danger py-0 {% if not properties %}d-none{% endif %}"
-                                data-bs-toggle="tooltip" data-bs-placement="top" title="Delete current property"
-                        >
-                            Delete
-                        </button>
-                        <button id="add_property_btn" class="btn btn-success py-0 {% if properties %}d-none{% endif %}">
-                            Add
-                        </button>
+            <h3 class="h5">Attribute types</h3>
+            <p class="text-muted small">Each type is one dimension (e.g. Color, Size). Under each type, add options customers can choose.</p>
+            <a href="{% url 'vendor:property_type_add' product.pk %}" class="btn btn-success btn-sm mb-3">Add attribute type</a>
+
+            {% for group in property_groups %}
+            <div class="border rounded p-3 mb-3" style="background: #fafafa;">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 pb-2 border-bottom">
+                    <div class="flex-grow-1 min-w-0">
+                        <strong>{{ group.title }}</strong>
+                        {% if group.is_default %}<span class="badge bg-info text-dark ms-1">swatch / thumbnail</span>{% endif %}
                     </div>
-                    {% csrf_token %}
-                    <input type="hidden" name="is_main" value="on">
-                    <input type="text" class="form-control" id="title" name="title"
-                           placeholder="Please enter title for properties"
-                           required
-                           maxlength="50"
-                           minlength="1"
-                           pattern=".{1,50}"
-                           data-bs-toggle="tooltip"
-                           data-bs-placement="top"
-                           title="Enter a unique name for this property (1-50 characters)"
-                           value="{% if properties %}{{ properties.title }}{% endif %}"
-                    >
-                    <div class="form-check">
-                        <input id="is-default" class="form-check-input" type="checkbox" name="is_default" {% if properties.is_default %}checked{% endif %}>
-                        <label for="is-default" class="form-check-label">
-                            Image Default as thumbnail
-                            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
-                               title="If checked, the first uploaded image will be used as product thumbnail"></i>
-                        </label>
+                    <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+                        <a href="{% url 'vendor:property_type_edit' product.pk group.pk %}" class="btn btn-sm btn-outline-primary">Edit type</a>
+                        <form method="post" action="{% url 'vendor:property_type_delete' product.pk group.pk %}" class="d-inline m-0" onsubmit="return confirm('Delete this attribute type and all its options?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete type</button>
+                        </form>
                     </div>
-                </form>
-                <div id="main_props" class="row gap-2">
-                    {% if properties and not properties.properties.all.exists %}
-                    <form id="main_prop1" action="{% url 'vendor:property_edit' product.pk %}" class="col-auto d-flex flex-column" method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="title" value="{{ properties.title }}">
-                        <input type="file" id="main_input1" name="image" class="d-none" accept="image/!*"
-                               onChange="handleMainPropImageUpload(this)"/>
-                        <label for="main_input1" class="position-relative"
-                               style="cursor: pointer; display: inline-block;">
-                            <img id="main_image1" src="{% static 'image/add.png' %}" alt="add_img"
-                                 style="width: 50px; height: 50px; object-fit: contain;"/>
-                            <button type="button" id="main_add_btn1"
-                                    class="position-absolute top-0 start-100 translate-middle badge rounded-circle rounded-circle border-0 btn-success d-none"
-                            >
-                                +
-                            </button>
-                            <button type="button" id="main_del_btn1"
-                                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill border-0 btn-danger d-none">
-                                x
-                            </button>
-                        </label>
-                        <div id="main_input-group1">
-                            <input type="text" name="name" class="form-control mt-1 mb-1 p-1" data-bs-toggle="tooltip"
-                                   data-bs-placement="top" title="Name" style="width: 50px; font-size: 0.75rem">
-                            <input type="text" name="change_value" class="form-control mb-1 p-1" data-bs-toggle="tooltip"
-                                   data-bs-placement="top" title="Price changes"
-                                   style="width: 50px; font-size: 0.75rem">
-                            <input type="text" name="sku" class="form-control p-1" data-bs-toggle="tooltip"
-                                   data-bs-placement="top" title="SKU"
-                                   style="width: 50px; font-size: 0.75rem">
-                        </div>
-                        <button type="submit" class="btn btn-sm btn-primary mt-1">Save attribute</button>
-                    </form>
-                    {% endif %}
                 </div>
-                {% if properties %}
-                <p class="mt-2 mb-0">
-                    <a class="btn btn-outline-primary btn-sm" href="{% url 'vendor:property_edit' product.pk %}">Add another attribute option</a>
-                </p>
-                {% endif %}
+                <ul class="list-unstyled mb-2 small ps-0">
+                    {% for opt in group.properties.all %}
+                    <li class="d-flex flex-wrap align-items-center gap-2 py-2 border-bottom">
+                        <span class="flex-grow-1 min-w-0">{{ opt.name }}{% if opt.change_value %} <span class="text-muted">(+${{ opt.change_value }})</span>{% endif %}</span>
+                        <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+                            <a href="{% url 'vendor:property_option_edit' product.pk opt.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="post" action="{% url 'vendor:property_option_delete' product.pk opt.pk %}" class="d-inline m-0" onsubmit="return confirm('Delete this option?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted py-1">No options yet.</li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-2">
+                    <a href="{% url 'vendor:property_option_add' product.pk group.pk %}" class="btn btn-outline-primary btn-sm">Add option</a>
+                </div>
             </div>
-            <div class="form-group" style="margin-bottom: 1px">
-                <label for="subProp1" class="form-label d-none">Sub Properties</label>
-            </div>
-            <button id="add_sub_prop" class="btn btn-primary p-2 d-none">Add Sub Properties</button>
-        </div>
-    </div>
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                Bootstrap
-                <button type="button" class="ms-auto btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                See? Just like this.
-            </div>
+            {% empty %}
+            <p class="text-muted small">No attribute types. Add at least one if this product has variants (color, size, etc.).</p>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -170,53 +123,8 @@
 {% block extra_js %}
     <script>
         const is_img_data = {{ product.images.exists|lower }}
-        const is_prop_data = {{ product.property_titles.exists|lower }}
-
-        function load_prop_data() {
-            const prop_data = [
-                {% for ptitle in product.property_titles.all %}{% for prop in ptitle.properties.all %}
-                    {
-                        {% if properties.is_default %}"img": "{{ prop.image.url }}",{% endif %}
-                        "id": {{ prop.id }},
-                        "name": "{{ prop.name }}",
-                        "change_value": {{ prop.change_value }},
-                        "sku": "{{ prop.sku }}",
-                    },
-                {% endfor %}{% endfor %}
-            ];
-            for (let i = 0; i < prop_data.length; i++) {
-                const prop = main_image_input(i+1);
-                const existInput = document.createElement('input');
-                existInput.type = "hidden";
-                existInput.name = "existed";
-                prop.append(existInput);
-                prop.action = `/vendor/products/property/${document.querySelector('meta[name="pk"]').content}/edit/`;
-                document.getElementById('main_props').append(prop);
-            }
-            document.getElementById('main_props').append(main_image_input(prop_data.length + 1))
-        }
-
-        function load_img_data() {
-            const img_src = [
-                {% for img in product.images.all %}
-                    '{{ img.image.url }}',
-                {% endfor %}
-            ];
-            for (let i = 0; i < {{ product.images.count }}; i++) {
-                const img_count = i + 1;
-                const items = img_input(img_count);
-                img_inputs.push(items)
-                img_group.append(items);
-                const label = document.querySelector(`label[for=image-upload-${img_count}]`);
-                const preview = document.getElementById(`preview${img_count}`);
-                const img = document.getElementById(`image${img_count}`);
-                label.classList.add('d-none');
-                img.src = img_src[i];
-                preview.classList.remove('d-none');
-            }
-            img_group.append(img_input({{ product.images.count }}+1));
-        }
     </script>
     <script src="{% static 'js/product_imgs.js' %}"></script>
+    <script src="{% static 'js/vendor_product_thumbnail.js' %}"></script>
     <script src="{% static 'js/product_edit.js' %}"></script>
 {% endblock %}

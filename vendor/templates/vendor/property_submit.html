@@ -1,23 +1,48 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Attribute — {{ product.name }}{% endblock %}
+{% block title %}{{ form_heading }} — {{ product.name }}{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 32rem;">
-    <h2>{{ product.name }}</h2>
-    <p class="text-muted">Add or update one attribute option (name, price delta, SKU).</p>
-    <form method="post" enctype="multipart/form-data">
+    <h2>{{ form_heading }}</h2>
+    <p class="text-muted">{{ product.name }} — name, optional price change, and numeric code (legacy field).</p>
+    <form method="post" enctype="multipart/form-data" id="property-option-form">
         {% csrf_token %}
         {% for field in form %}
         <div class="form-group mb-2">
+            {% if field.name == 'image' %}
+            <span class="form-label d-block">{{ field.label }}</span>
+            <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="property-image-choose-btn">Choose file</button>
+                <span class="text-muted small" id="property-image-filename">No file chosen</span>
+            </div>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+            {% else %}
             <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
             {{ field }}
             {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+            {% endif %}
         </div>
         {% endfor %}
         <button type="submit" class="btn btn-primary">Save attribute</button>
         <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-secondary">Back to product</a>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const input = document.querySelector('#property-option-form input[type="file"][name="image"]');
+    const btn = document.getElementById('property-image-choose-btn');
+    const label = document.getElementById('property-image-filename');
+    if (!input || !btn || !label) return;
+    btn.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () {
+        label.textContent = input.files && input.files.length ? input.files[0].name : 'No file chosen';
+    });
+})();
+</script>
 {% endblock %}

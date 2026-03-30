@@ -103,11 +103,18 @@
                 hiddenSku.disabled = true;
                 hiddenSku.value = '';
             }
+            const simpleInStock = cfg.simpleInStock !== false;
+            const cannotCfg = cfg.cannotAddConfigurable === true;
+            const canAdd = simpleInStock && !cannotCfg;
             if (addBtn) {
-                addBtn.disabled = false;
-                addBtn.removeAttribute('title');
+                addBtn.disabled = !canAdd;
+                addBtn.title = canAdd
+                    ? ''
+                    : cannotCfg
+                      ? 'No in-stock option for this configuration'
+                      : 'This product is out of stock';
             }
-            if (qtyInput) qtyInput.disabled = false;
+            if (qtyInput) qtyInput.disabled = !canAdd;
             return;
         }
 

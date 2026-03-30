@@ -45,6 +45,7 @@
             </div>
             <el-table :data="tableData" hight="500">
                 <el-table-column prop="order_number" label="Order Number" width="250"/>
+                <el-table-column prop="purchase_date" label="Date" width="170" sortable/>
                 <el-table-column prop="customer" label="Customer" width="180"/>
                 <el-table-column label="Amount" width="200">
                     <template #default="scope">
@@ -111,8 +112,12 @@
                     return row.status === value;
                 },
                 searchTable() {
+                    const q = this.search.toLowerCase();
                     this.tableData = data.filter(row => {
-                        return row.order_number.toLowerCase().includes(this.search.toLowerCase()) || row.customer.toLowerCase().includes(this.search.toLowerCase())
+                        const inOrder = row.order_number.toLowerCase().includes(q);
+                        const inCustomer = row.customer.toLowerCase().includes(q);
+                        const inDate = (row.purchase_date || '').toLowerCase().includes(q);
+                        return inOrder || inCustomer || inDate;
                     });
                 },
                 cleanTable() {

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Add Product - Online Store{% endblock %}
 
@@ -9,7 +10,7 @@
 {% block content %}
     <div class="card">
         <h2>Add Product</h2>
-        <form method="post" class="col" enctype="multipart/form-data">
+        <form id="vendor-product-form" method="post" class="col" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="id_name" class="form-label">Product Name</label>
@@ -26,14 +27,11 @@
                 {% endif %}
             </div>
             <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="id_total_sku" class="form-label">Total SKU</label>
-                {{ form.total_sku }}
-                {% if form.total_sku.errors %}
-                    <div class="text-danger" style="font-size: 0.9rem;">{{ form.total_sku.errors.0 }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group" style="margin-bottom: 1rem;">
-                <label for="id_thumbnail" class="form-label">Thumbnail Image</label>
+                <span class="form-label d-block">Thumbnail Image</span>
+                <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="product-thumbnail-choose-btn">Choose file</button>
+                    <span class="text-muted small" id="product-thumbnail-filename">No file chosen</span>
+                </div>
                 {{ form.thumbnail }}
                 {% if form.thumbnail.errors %}
                     <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
@@ -73,4 +71,5 @@
         const load_img_data = () => {};
     </script>
     <script src="{% static 'js/product_imgs.js' %}"></script>
+    <script src="{% static 'js/vendor_product_thumbnail.js' %}"></script>
 {% endblock %}

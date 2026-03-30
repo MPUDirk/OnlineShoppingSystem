@@ -56,7 +56,7 @@
 
     {% if cart_items %}
     {# Optional JSON map: { "cart_item_pk": { "sku", "configuration", "outOfStock" } } for storefront demo / future API #}
-    <script id="cart-line-meta-json" type="application/json">{}</script>
+    <script id="cart-line-meta-json" type="application/json">{{ cart_line_meta_json|safe }}</script>
     <form method="get" action="{% url 'shopping:checkout' %}" id="cart-form">
     <div id="cart-content">
         {% for item in cart_items %}

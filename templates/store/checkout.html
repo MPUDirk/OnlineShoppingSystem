@@ -21,7 +21,7 @@
     <p style="margin-bottom: 1rem;">Balance: ${{ wallet.balance }} | Total: ${{ cart_total }}</p>
 
     {# Same keys as cart-line-meta-json (cart item pk) for D5 optional OOS guard #}
-    <script id="checkout-line-meta-json" type="application/json">{}</script>
+    <script id="checkout-line-meta-json" type="application/json">{{ checkout_line_meta_json|safe }}</script>
 
     <form method="post" id="checkout-form">
         {% csrf_token %}

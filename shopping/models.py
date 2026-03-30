@@ -45,7 +45,6 @@ class Product(models.Model):
         blank=True,
         related_name='products'
     )
-    total_sku = models.PositiveIntegerField(default=0)
     
     # Enable/disable (A18)
     is_active = models.BooleanField(default=True)
@@ -106,6 +105,45 @@ class ProductImage(models.Model):
         return f"{self.product.name} - Image {self.display_order}"
 
 
+class ProductSKU(models.Model):
+    """D4: one row per sellable configuration; simple products use a single SKU (often no property links)."""
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='skus',
+    )
+    sku = models.CharField(max_length=80, unique=True)
+    in_stock = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sku']
+        verbose_name = 'Product SKU'
+        verbose_name_plural = 'Product SKUs'
+
+    def __str__(self):
+        return self.sku
+
+
+class SKUProductProperty(models.Model):
+    """Links a SKU to one ProductProperty per attribute dimension."""
+    sku = models.ForeignKey(
+        ProductSKU,
+        on_delete=models.CASCADE,
+        related_name='property_links',
+    )
+    product_property = models.ForeignKey(
+        'ProductProperty',
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        unique_together = [('sku', 'product_property')]
+
+    def __str__(self):
+        return f'{self.sku.sku} → {self.product_property}'
+
+
 class ShoppingCart(models.Model):
     """Shopping cart model (Block A - A7, A8, A9, A10)"""
     customer = models.OneToOneField(
@@ -142,6 +180,13 @@ class CartItem(models.Model):
     )
     # One ProductProperty id per attribute group (e.g. Type, Color), in group order
     selected_property_ids = models.JSONField(default=list, blank=True)
+    product_sku = models.ForeignKey(
+        'ProductSKU',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cart_items',
+    )
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -290,6 +335,15 @@ class OrderItem(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))]
     )
     property_summary = models.CharField(max_length=500, blank=True)
+    product_sku = models.ForeignKey(
+        'ProductSKU',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='order_items',
+    )
+    sku_code = models.CharField(max_length=80, blank=True)
+    configuration_label = models.CharField(max_length=500, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -316,6 +370,10 @@ class ProductPropertyTitle(models.Model):
     is_main = models.BooleanField(default=False)
     is_default = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['pk']
+        unique_together = [('product', 'title')]
+
     def save(
         self,
         *,
@@ -325,7 +383,6 @@ class ProductPropertyTitle(models.Model):
         update_fields = None,
     ):
         super().save()
-
 
     def __str__(self):
         return self.title
@@ -341,6 +398,8 @@ class ProductProperty(models.Model):
     change_value = models.DecimalField(default=0, max_digits=10, decimal_places=2, blank=True, null=True)
     sku = models.IntegerField(validators=[MinValueValidator(0)])
 
+    class Meta:
+        ordering = ['pk']
 
     def __str__(self):
         return f"{self.title}: {self.name}"

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}SKU inventory — {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>SKU inventory</h2>
+    <p style="color: #666; margin-bottom: 0.5rem;">
+        <strong>{{ product.name }}</strong>
+        <span style="color: #999;">(ID: {{ product.product_id }})</span>
+    </p>
+    <p class="small text-muted mb-3">Each row is one sellable configuration. Toggle in-stock / out-of-stock for customers adding to cart.</p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% else %}alert-info{% endif %} mb-3" role="alert">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    {% if sku_rows %}
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                    <th style="padding: 0.75rem; text-align: left;">SKU code</th>
+                    <th style="padding: 0.75rem; text-align: left;">Configuration</th>
+                    <th style="padding: 0.75rem; text-align: left;">Stock</th>
+                    <th style="padding: 0.75rem; text-align: left;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in sku_rows %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 0.75rem; font-family: ui-monospace, monospace;"><code>{{ row.obj.sku }}</code></td>
+                    <td style="padding: 0.75rem; color: #555;">{% if row.label %}{{ row.label }}{% else %}<span class="text-muted">(default / simple)</span>{% endif %}</td>
+                    <td style="padding: 0.75rem;">
+                        {% if row.obj.in_stock %}
+                        <span class="badge bg-success">In stock</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Out of stock</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <form method="post" action="{% url 'vendor:product_sku_toggle' product.pk row.obj.pk %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                Mark {% if row.obj.in_stock %}out of stock{% else %}in stock{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No SKU rows yet. Save the product in the catalogue to create default SKUs.</p>
+    {% endif %}
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-secondary">Back to edit product</a>
+        <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-outline-secondary">View storefront</a>
+    </div>
+</div>
+{% endblock %}
