@@ -3,6 +3,14 @@
 
 {% block title %}Sign Up - Online Store{% endblock %}
 
+{% block meta %}
+    <meta name="description" content="StudentDemo: Sign up page">
+    <meta name="keywords" content="sign up, register, online store">
+    <meta name="author" content="MPU ISP Group25">
+
+    <meta property="og:url" content="https://{{ request.META.HTTP_HOST }}{{ request.path }}">
+{% endblock %}
+
 {% block content %}
     <div id="register">
         <div class="card" style="max-width: 500px; margin: 0 auto;">
