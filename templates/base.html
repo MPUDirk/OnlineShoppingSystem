@@ -24,6 +24,14 @@
             color: unset;
         }
     </style>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5J9X44K82C"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-5J9X44K82C');
+    </script>
 </head>
 
 <body>
@@ -114,14 +122,6 @@
         // Global Axios Configuration
         axios.defaults.xsrfCookieName = 'csrftoken';
         axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-    </script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5J9X44K82C"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-5J9X44K82C');
     </script>
     {% block extra_js %}{% endblock %}
 </body>
