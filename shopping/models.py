@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
@@ -83,6 +84,9 @@ class Product(models.Model):
             random_num = random.randint(1000, 9999)
             self.product_id = f"PROD-{timestamp}-{random_num}"
         super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('shopping:product_detail', kwargs={"pk": self.id})
 
 
 class ProductImage(models.Model):

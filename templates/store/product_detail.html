@@ -3,6 +3,14 @@
 
 {% block title %}{{ product.name }} - Online Store{% endblock %}
 
+{% block meta %}
+    <meta name="description" content="{{ product.description }}">
+    <meta name="keywords" content="MPU, ISP, {{ product.name }}, online store">
+
+    <meta property="og:title" content="Product|{{ product.name }} - Online Store">
+    <meta property="og:description" content="{{ product.description }}">
+{% endblock %}
+
 {% block external_mods %}
 <link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
 {% endblock %}

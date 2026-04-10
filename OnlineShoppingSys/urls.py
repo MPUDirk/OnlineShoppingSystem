@@ -22,9 +22,12 @@ from django.contrib.sitemaps.views import sitemap
 from django.views.generic import TemplateView
 
 from user.sitemaps import UserSitemap
+from shopping.sitemaps import *
 
 sitemaps = {
+    'home': HomeSitemap,
     'user': UserSitemap,
+    'product': ProductSitemap,
 }
 
 urlpatterns = [
