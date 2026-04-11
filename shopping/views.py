@@ -1,5 +1,3 @@
-import json
-
 from django.contrib import messages
 from django.db import transaction as db_transaction
 from django.db.models import Q
@@ -131,11 +129,11 @@ class ProductDetailPageView(DetailView):
             context['simple_sku_in_stock'] = bool(sku and sku.in_stock)
         else:
             context['simple_sku_in_stock'] = True
-        context['product_config_json'] = json.dumps({
+        context['product_config'] = {
             'simpleInStock': context['simple_sku_in_stock'],
             'hasConfigurableOptions': bool(groups),
             'cannotAddConfigurable': bool(groups_all_oos),
-        })
+        }
         return context
 
 
@@ -151,8 +149,6 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
         )
 
     def get_context_data(self, **kwargs):
-        import json
-
         context = super().get_context_data(**kwargs)
         cart_items = context['cart_items']
         cart = ShoppingCart.objects.filter(customer=self.request.user).first()
@@ -168,7 +164,7 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
                 'outOfStock': bool(sku and not sku.in_stock),
                 'imageUrl': item.get_line_image_url() or '',
             }
-        context['cart_line_meta_json'] = json.dumps(line_meta)
+        context['cart_line_meta'] = line_meta
         return context
 
 class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
@@ -295,8 +291,6 @@ class CheckoutView(CustomerOnlyMixin, FormView):
         return all_items
 
     def get_context_data(self, **kwargs):
-        import json
-
         context = super().get_context_data(**kwargs)
         cart_items = self._get_selected_items()
         context['cart_items'] = cart_items
@@ -314,7 +308,7 @@ class CheckoutView(CustomerOnlyMixin, FormView):
                 'outOfStock': bool(sku and not sku.in_stock),
                 'imageUrl': item.get_line_image_url() or '',
             }
-        context['checkout_line_meta_json'] = json.dumps(line_meta)
+        context['checkout_line_meta'] = line_meta
         return context
 
     def form_valid(self, form):

@@ -16,10 +16,13 @@
 {% endblock %}
 
 {% block extra_js %}
+    {{ js_orders|json_script:"vendor-orders-data" }}
     <script>
-        const False = false;
-        const True = true;
-        const data = {{ js_orders|safe }}
+        const data = (function () {
+            const el = document.getElementById('vendor-orders-data');
+            if (!el) return [];
+            try { return JSON.parse(el.textContent || '[]'); } catch (e) { return []; }
+        })();
 
         const {createApp, ref} = Vue;
 

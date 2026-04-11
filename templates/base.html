@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,6 +53,7 @@
                 {% if user.is_authenticated %}
                     {% if is_vendor or user.is_staff or user.is_superuser %}
                     <a href="{% url 'vendor:home' %}" class="nav-link">My Products</a>
+                    <a href="{% url 'vendor:sales_reports' %}" class="nav-link">Sales reports</a>
                     {% endif %}
                     {% if not is_vendor and not user.is_staff and not user.is_superuser %}
                     <a href="/cart/" class="nav-link">

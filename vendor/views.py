@@ -7,12 +7,19 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
-from django.views.generic import CreateView, ListView, UpdateView, DeleteView, FormView
+from django.views.generic import CreateView, ListView, UpdateView, DeleteView, FormView, TemplateView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
 from shopping.models import Product, Order, OrderStatusHistory, ProductPropertyTitle, ProductProperty, ProductSKU
 from shopping.sku_catalog import get_configuration_label
 from user.models import Wallet, Transaction
+from .analytics import (
+    kpi_for_range,
+    resolve_period,
+    sales_orderitem_queryset,
+    timeseries_for_range,
+    top_products,
+)
 from .forms import ProductCreateForm, ProductUpdateForm, PropertyTitleForm, PropertyOptionForm
 
 
@@ -319,6 +326,46 @@ class ProductDeleteView(ProductEditPermissionMixin, DeleteView):
 
     def get_object(self, queryset=None):
         return Product.objects.get(id=self.kwargs['pk'])
+
+
+class VendorSalesReportView(VendorOrAdminRequiredMixin, TemplateView):
+    """Block V: sales KPIs, time series, top products (excludes cancelled orders)."""
+
+    template_name = 'vendor/sales_reports.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        period = self.request.GET.get('period', 'month')
+        if period not in ('today', 'week', 'month', 'year'):
+            period = 'month'
+        bounds = resolve_period(period)
+        qs = sales_orderitem_queryset(self.request.user)
+        revenue, order_cnt, avg_order = kpi_for_range(qs, bounds.start, bounds.end)
+        series = timeseries_for_range(qs, bounds)
+        context['report_period'] = period
+        period_labels = {
+            'today': 'Today',
+            'week': 'Last 7 days',
+            'month': 'This month (to date)',
+            'year': 'This year (to date)',
+        }
+        context['period_labels'] = period_labels
+        context['period_title'] = period_labels.get(period, period_labels['month'])
+        context['bounds_start'] = bounds.start
+        context['bounds_end'] = bounds.end
+        context['kpi_revenue'] = revenue
+        context['kpi_orders'] = order_cnt
+        context['kpi_avg_order'] = avg_order
+        context['top_products'] = top_products(qs, bounds.start, bounds.end, 10)
+        labels = [s['label'] for s in series]
+        rev = [s['revenue'] for s in series]
+        ords = [s['orders'] for s in series]
+        context['chart_data'] = {'labels': labels, 'revenue': rev, 'orders': ords}
+        context['footnote'] = (
+            'Sales exclude cancelled orders. Amounts are summed from your order line subtotals '
+            '(same basis as vendor order list).'
+        )
+        return context
 
 
 class ProductSkuListView(ProductEditPermissionMixin, ListView):

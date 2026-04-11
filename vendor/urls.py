@@ -7,6 +7,7 @@ from .views import (
     ProductDeleteView,
     VendorProductListView,
     VendorOrderListView,
+    VendorSalesReportView,
     ProductPropertyTitleCreateView,
     ProductPropertyTitleUpdateView,
     ProductPropertyTitleDeleteView,
@@ -21,6 +22,7 @@ app_name = 'vendor'
 
 urlpatterns = [
     path('', VendorProductListView.as_view(), name='home'),
+    path('reports/', VendorSalesReportView.as_view(), name='sales_reports'),
     path('orders/', VendorOrderListView.as_view(), name='order_list'),
     path('orders/<int:pk>/update/', OrderUpdateView.as_view(), name='order_update'),
     path('products/add/', ProductCreateView.as_view(), name='product_add'),

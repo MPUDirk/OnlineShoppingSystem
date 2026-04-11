@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block content %}
-    <script id="product-config-data" type="application/json">{{ product_config_json|default:"{}"|safe }}</script>
+    {{ product_config|json_script:"product-config-data" }}
 
     <div class="card" id="product-detail-container">
         <div class="product-detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
