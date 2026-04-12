@@ -39,7 +39,7 @@
                         Delete
                     </button>{% endcomment %}
                     {% if product.is_active %}
-                        <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-success w-100 mb-1" >View</a>
+                        <a href="{% url 'shopping:product_detail' product.slug %}" class="btn btn-success w-100 mb-1" >View</a>
                     {% endif %}
                     <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-primary" style="width: 100%;">Edit</a>
                 </div>

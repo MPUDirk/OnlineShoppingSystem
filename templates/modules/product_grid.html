@@ -9,7 +9,7 @@
                     {{ product.description|truncatewords:15 }}
                 </p>
                 <div class="product-actions">
-                    <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-primary"
+                    <a href="{% url 'shopping:product_detail' product.slug %}" class="btn btn-primary"
                        style="width: 100%;">View Details</a>
                 </div>
             </div>

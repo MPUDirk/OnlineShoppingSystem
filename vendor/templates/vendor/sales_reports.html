@@ -71,7 +71,7 @@
             <tbody>
                 {% for row in top_products %}
                 <tr>
-                    <td><a href="{% url 'shopping:product_detail' row.product_id %}">{{ row.name }}</a></td>
+                    <td><a href="{% url 'shopping:product_detail' row.slug %}">{{ row.name }}</a></td>
                     <td class="text-end">{{ row.units }}</td>
                     <td class="text-end">${{ row.revenue|floatformat:2 }}</td>
                     <td class="text-end">{{ row.lines }}</td>

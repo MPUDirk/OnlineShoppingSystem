@@ -318,7 +318,8 @@ class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
         return context
 
     def get_success_url(self):
-        return reverse('shopping:product_detail', kwargs={'pk': self.kwargs['pk']})
+        product = self.object
+        return reverse('shopping:product_detail', kwargs={'slug': product.slug})
 
 class ProductDeleteView(ProductEditPermissionMixin, DeleteView):
     model = Product

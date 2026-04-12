@@ -1,9 +1,11 @@
+import json
+
 from django.contrib import messages
 from django.db import transaction as db_transaction
 from django.db.models import Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponsePermanentRedirect, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView, FormView, TemplateView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
@@ -20,6 +22,7 @@ from .sku_catalog import (
 )
 from .models import (
     Product,
+    ProductSKU,
     ShoppingCart,
     CartItem,
     Order,
@@ -64,10 +67,20 @@ class ProductListView(ListView):
         return context
 
 
+def product_detail_pk_redirect(request, pk):
+    """301 from legacy /products/<pk>/ URLs to canonical slug URLs (Block Y SEO)."""
+    product = get_object_or_404(Product.objects.only('slug', 'pk'), pk=pk)
+    return HttpResponsePermanentRedirect(
+        reverse('shopping:product_detail', kwargs={'slug': product.slug})
+    )
+
+
 class ProductDetailPageView(DetailView):
     model = Product
     template_name = 'store/product_detail.html'
     context_object_name = 'product'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
 
     def get_queryset(self):
         """
@@ -134,6 +147,52 @@ class ProductDetailPageView(DetailView):
             'hasConfigurableOptions': bool(groups),
             'cannotAddConfigurable': bool(groups_all_oos),
         }
+        request = self.request
+        canonical = request.build_absolute_uri(product.get_absolute_url())
+        context['canonical_url'] = canonical
+        if product.thumbnail:
+            context['og_image_url'] = request.build_absolute_uri(product.thumbnail.url)
+        else:
+            context['og_image_url'] = ''
+
+        images_ld = []
+        if product.thumbnail:
+            images_ld.append(request.build_absolute_uri(product.thumbnail.url))
+        for pi in context['images']:
+            images_ld.append(request.build_absolute_uri(pi.image.url))
+
+        if not product.is_active:
+            avail_url = 'https://schema.org/Discontinued'
+        elif groups:
+            has_stock = ProductSKU.objects.filter(product=product, in_stock=True).exists()
+            avail_url = 'https://schema.org/InStock' if has_stock else 'https://schema.org/OutOfStock'
+        else:
+            avail_url = (
+                'https://schema.org/InStock'
+                if context['simple_sku_in_stock']
+                else 'https://schema.org/OutOfStock'
+            )
+
+        ld = {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            'name': product.name,
+            'description': (product.description or '')[:5000],
+            'sku': product.product_id,
+            'url': canonical,
+            'offers': {
+                '@type': 'Offer',
+                'url': canonical,
+                'priceCurrency': 'USD',
+                'price': str(product.price),
+                'availability': avail_url,
+            },
+        }
+        if len(images_ld) == 1:
+            ld['image'] = images_ld[0]
+        elif images_ld:
+            ld['image'] = images_ld
+        context['product_ld_json'] = json.dumps(ld, ensure_ascii=False)
         return context
 
 
@@ -192,7 +251,7 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
                 self.request,
                 'Please choose an option for each attribute (for example Type).',
             )
-            return redirect('shopping:product_detail', pk=product.pk)
+            return redirect('shopping:product_detail', slug=product.slug)
         ensure_default_sku(product)
         sku = find_sku_for_selection(product, selection)
         if sku is None:
@@ -200,13 +259,13 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
                 self.request,
                 'No SKU is configured for this combination. Ask the seller to add SKUs in the vendor portal.',
             )
-            return redirect('shopping:product_detail', pk=product.pk)
+            return redirect('shopping:product_detail', slug=product.slug)
         if not sku.in_stock:
             messages.error(
                 self.request,
                 'This option is out of stock and cannot be added to the cart.',
             )
-            return redirect('shopping:product_detail', pk=product.pk)
+            return redirect('shopping:product_detail', slug=product.slug)
         for item in CartItem.objects.filter(cart=cart, product=product):
             if list(item.selected_property_ids or []) == selection:
                 item.quantity += quantity

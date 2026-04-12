@@ -2,6 +2,11 @@
 
 {% block title %}My Orders - Online Store{% endblock %}
 
+{% block meta %}
+    <meta name="description" content="Your orders — list and status.">
+    <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
 {% block content %}
 {% include 'modules/modal.html' with title="Cancel Order" message="Are you sure you want to cancel this order?" conf_btn_color="btn-danger" conf_btn_label="Cancel" %}
 <div class="card">

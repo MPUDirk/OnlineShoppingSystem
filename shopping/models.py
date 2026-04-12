@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class Category(models.Model):
@@ -30,6 +31,8 @@ class Product(models.Model):
     
     # Basic information (A3, A6, A16)
     name = models.CharField(max_length=200)
+    # SEO / Block Y: search-friendly URL segment (unique, auto-filled from name)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -73,9 +76,20 @@ class Product(models.Model):
     
     def __str__(self):
         return f"{self.name} (ID: {self.product_id})"
-    
+
+    def _make_unique_slug(self) -> str:
+        base = slugify(self.name)[:200] or 'product'
+        if base.isdigit():
+            base = f'item-{base}'
+        candidate = base
+        n = 0
+        while Product.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+            n += 1
+            candidate = f'{base}-{n}'
+        return candidate
+
     def save(self, *args, **kwargs):
-        """Auto-generate unique product ID"""
+        """Auto-generate unique product ID and URL slug when missing."""
         if not self.product_id:
             # Format: PROD-{timestamp}-{random}
             import time
@@ -83,10 +97,12 @@ class Product(models.Model):
             timestamp = int(time.time())
             random_num = random.randint(1000, 9999)
             self.product_id = f"PROD-{timestamp}-{random_num}"
+        if not self.slug:
+            self.slug = self._make_unique_slug()
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('shopping:product_detail', kwargs={"pk": self.id})
+        return reverse('shopping:product_detail', kwargs={'slug': self.slug})
 
 
 class ProductImage(models.Model):

@@ -59,7 +59,7 @@
 
     <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'vendor:product_edit' product.pk %}" class="btn btn-secondary">Back to edit product</a>
-        <a href="{% url 'shopping:product_detail' product.pk %}" class="btn btn-outline-secondary">View storefront</a>
+        <a href="{% url 'shopping:product_detail' product.slug %}" class="btn btn-outline-secondary">View storefront</a>
     </div>
 </div>
 {% endblock %}

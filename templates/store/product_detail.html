@@ -6,9 +6,13 @@
 {% block meta %}
     <meta name="description" content="{{ product.description }}">
     <meta name="keywords" content="MPU, ISP, {{ product.name }}, online store">
-
+    <link rel="canonical" href="{{ canonical_url }}">
     <meta property="og:title" content="Product|{{ product.name }} - Online Store">
     <meta property="og:description" content="{{ product.description }}">
+    {% if og_image_url %}
+    <meta property="og:image" content="{{ og_image_url }}">
+    {% endif %}
+    <script type="application/ld+json">{{ product_ld_json|safe }}</script>
 {% endblock %}
 
 {% block external_mods %}
@@ -171,7 +175,7 @@
                 <h4 class="product-title">{{ item.name }}</h4>
                 <p class="product-price">${{ item.price }}</p>
                 <div class="product-actions">
-                    <a href="{% url 'shopping:product_detail' item.pk %}" class="btn btn-primary" style="width: 100%;">View Details</a>
+                    <a href="{% url 'shopping:product_detail' item.slug %}" class="btn btn-primary" style="width: 100%;">View Details</a>
                 </div>
             </div>
         </div>

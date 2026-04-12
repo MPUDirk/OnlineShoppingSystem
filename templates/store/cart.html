@@ -3,6 +3,11 @@
 
 {% block title %}Shopping Cart - Online Store{% endblock %}
 
+{% block meta %}
+    <meta name="description" content="Your shopping cart — review items before checkout.">
+    <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
 {% block external_mods %}
 <link rel="stylesheet" href="{% static 'css/product-config.css' %}" />
 {% endblock %}
@@ -71,7 +76,7 @@
                 {% endwith %}
             </div>
             <div class="cart-item-info">
-                <h4><a href="{% url 'shopping:product_detail' item.product.pk %}" style="text-decoration: none; color: #2c3e50;">{{ item.product.name }}</a></h4>
+                <h4><a href="{% url 'shopping:product_detail' item.product.slug %}" style="text-decoration: none; color: #2c3e50;">{{ item.product.name }}</a></h4>
                 <p class="cart-item-variant text-muted small mb-1" data-line-meta data-product-id="{{ item.product.product_id }}">
                     {% if item.get_property_summary_display %}
                     {{ item.get_property_summary_display }}

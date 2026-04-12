@@ -26,14 +26,14 @@ def sales_orderitem_queryset(user: User):
     return qs.filter(product__created_by=user)
 
 
-BucketKey = Union[Tuple[int, int], Tuple[int, int, int]]
+BucketKey = Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]]
 
 
 @dataclass
 class PeriodBounds:
     start: timezone.datetime
     end: timezone.datetime
-    # 'day' or 'month' — bucket in Python so MySQL need not load time_zone tables (CONVERT_TZ).
+    # 'day', 'month', or 'year' — bucket in Python (no MySQL CONVERT_TZ).
     granularity: str
 
 
@@ -49,12 +49,16 @@ def _bucket_key(pdate, granularity: str) -> BucketKey:
     d = _purchase_wall_time(pdate)
     if d is None:
         raise ValueError('purchase_date required for bucketing')
+    if granularity == 'year':
+        return (d.year,)
     if granularity == 'month':
         return (d.year, d.month)
     return (d.year, d.month, d.day)
 
 
 def _bucket_label(key: BucketKey, granularity: str) -> str:
+    if granularity == 'year':
+        return str(key[0])
     if granularity == 'month':
         y, m = key  # type: ignore[misc]
         return f'{y}-{m:02d}'
@@ -63,7 +67,7 @@ def _bucket_label(key: BucketKey, granularity: str) -> str:
 
 
 def resolve_period(period: str) -> PeriodBounds:
-    """Preset ranges in the active time zone; chart buckets by calendar day or month."""
+    """Preset ranges in the active time zone; chart buckets by day, month, or year."""
     now = timezone.now()
     period = (period or 'month').lower()
     if period == 'today':
@@ -77,7 +81,7 @@ def resolve_period(period: str) -> PeriodBounds:
     if period == 'year':
         start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         end = now
-        return PeriodBounds(start, end, 'month')
+        return PeriodBounds(start, end, 'year')
     # default: calendar month to date
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     end = now
@@ -130,7 +134,7 @@ def top_products(qs, start, end, limit: int = 10) -> List[dict]:
         order__purchase_date__lte=end,
     )
     rows = (
-        filtered.values('product_id', 'product__name')
+        filtered.values('product_id', 'product__name', 'product__slug')
         .annotate(
             revenue=Sum('subtotal'),
             units=Sum('quantity'),
@@ -141,6 +145,7 @@ def top_products(qs, start, end, limit: int = 10) -> List[dict]:
     return [
         {
             'product_id': r['product_id'],
+            'slug': r['product__slug'],
             'name': r['product__name'],
             'revenue': r['revenue'] or Decimal('0'),
             'units': r['units'] or 0,
