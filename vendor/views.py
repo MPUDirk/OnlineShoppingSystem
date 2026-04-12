@@ -347,8 +347,8 @@ class VendorSalesReportView(VendorOrAdminRequiredMixin, TemplateView):
         period_labels = {
             'today': 'Today',
             'week': 'Last 7 days',
-            'month': 'This month (to date)',
-            'year': 'This year (to date)',
+            'month': 'Month',
+            'year': 'Year',
         }
         context['period_labels'] = period_labels
         context['period_title'] = period_labels.get(period, period_labels['month'])
@@ -362,6 +362,12 @@ class VendorSalesReportView(VendorOrAdminRequiredMixin, TemplateView):
         rev = [s['revenue'] for s in series]
         ords = [s['orders'] for s in series]
         context['chart_data'] = {'labels': labels, 'revenue': rev, 'orders': ords}
+        context['chart_bucket_caption'] = {
+            'hour': 'Revenue and distinct order count per hour (today).',
+            'day': 'Revenue and distinct order count per day.',
+            'month': 'Revenue and distinct order count per calendar month (last 12 months).',
+            'year': 'Revenue and distinct order count per calendar year (last 5 years).',
+        }.get(bounds.granularity, '')
         context['footnote'] = (
             'Sales exclude cancelled orders. Amounts are summed from your order line subtotals '
             '(same basis as vendor order list).'

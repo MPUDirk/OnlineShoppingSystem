@@ -26,15 +26,31 @@ def sales_orderitem_queryset(user: User):
     return qs.filter(product__created_by=user)
 
 
-BucketKey = Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]]
+BucketKey = Union[
+    Tuple[int],
+    Tuple[int, int],
+    Tuple[int, int, int],
+    Tuple[int, int, int, int],
+]
 
 
 @dataclass
 class PeriodBounds:
     start: timezone.datetime
     end: timezone.datetime
-    # 'day', 'month', or 'year' — bucket in Python (no MySQL CONVERT_TZ).
+    # hour | day | month | year — bucket in Python (no MySQL CONVERT_TZ).
     granularity: str
+
+
+def _first_day_of_month_months_ago(now: timezone.datetime, months_ago: int) -> timezone.datetime:
+    """Return 00:00 on the first day of the month `months_ago` months before now's month."""
+    y, m = now.year, now.month
+    for _ in range(months_ago):
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    return now.replace(year=y, month=m, day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
 def _purchase_wall_time(dt) -> Optional[timezone.datetime]:
@@ -49,14 +65,20 @@ def _bucket_key(pdate, granularity: str) -> BucketKey:
     d = _purchase_wall_time(pdate)
     if d is None:
         raise ValueError('purchase_date required for bucketing')
+    if granularity == 'hour':
+        return (d.year, d.month, d.day, d.hour)
     if granularity == 'year':
         return (d.year,)
     if granularity == 'month':
         return (d.year, d.month)
+    # day
     return (d.year, d.month, d.day)
 
 
 def _bucket_label(key: BucketKey, granularity: str) -> str:
+    if granularity == 'hour':
+        y, m, day, h = key  # type: ignore[misc]
+        return f'{y}-{m:02d}-{day:02d} {h:02d}:00'
     if granularity == 'year':
         return str(key[0])
     if granularity == 'month':
@@ -67,25 +89,35 @@ def _bucket_label(key: BucketKey, granularity: str) -> str:
 
 
 def resolve_period(period: str) -> PeriodBounds:
-    """Preset ranges in the active time zone; chart buckets by day, month, or year."""
+    """
+    Preset ranges in the active time zone.
+
+    Chart bucket granularity (X-axis):
+    - today: hourly
+    - week: daily
+    - month: last 12 calendar months (from first day of month 11 months ago) — one bar per month
+    - year: last 5 calendar years (from Jan 1 four years before current year) — one bar per year
+    """
     now = timezone.now()
     period = (period or 'month').lower()
     if period == 'today':
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end = now
-        return PeriodBounds(start, end, 'day')
+        return PeriodBounds(start, end, 'hour')
     if period == 'week':
         start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
         end = now
         return PeriodBounds(start, end, 'day')
     if period == 'year':
-        start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        start = now.replace(
+            year=now.year - 4, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+        )
         end = now
         return PeriodBounds(start, end, 'year')
-    # default: calendar month to date
-    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # month: last 12 months (inclusive), monthly buckets
+    start = _first_day_of_month_months_ago(now, 11)
     end = now
-    return PeriodBounds(start, end, 'day')
+    return PeriodBounds(start, end, 'month')
 
 
 def kpi_for_range(qs, start, end) -> Tuple[Decimal, int, Decimal]:

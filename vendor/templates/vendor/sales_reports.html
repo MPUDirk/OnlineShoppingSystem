@@ -18,8 +18,8 @@
             <select name="period" id="id_period" class="form-select form-select-sm" style="min-width: 12rem;" onchange="this.form.submit()">
                 <option value="today" {% if report_period == 'today' %}selected{% endif %}>Today</option>
                 <option value="week" {% if report_period == 'week' %}selected{% endif %}>Last 7 days</option>
-                <option value="month" {% if report_period == 'month' %}selected{% endif %}>This month</option>
-                <option value="year" {% if report_period == 'year' %}selected{% endif %}>This year</option>
+                <option value="month" {% if report_period == 'month' %}selected{% endif %}>Month</option>
+                <option value="year" {% if report_period == 'year' %}selected{% endif %}>Year</option>
             </select>
         </div>
         <span class="small text-muted align-self-center pb-1">
@@ -49,7 +49,7 @@
     </div>
 
     <h3 class="h5 mb-2">{{ period_title }}</h3>
-    <p class="small text-muted">Revenue and distinct order count per bucket.</p>
+    <p class="small text-muted">{{ chart_bucket_caption }}</p>
     <div style="max-width: 100%; height: 320px; position: relative;">
         <canvas id="sales-chart"></canvas>
     </div>
