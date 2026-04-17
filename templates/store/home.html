@@ -110,7 +110,7 @@
             </div>
 
             <div class="card" style="height: 100%">
-                {% include 'modules/product_grid.html' with products=popular_products %}
+                {% include 'modules/product_grid.html' with products=popular_products debug=debug %}
             </div>
         </div>
     </div>
@@ -119,6 +119,6 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>New Arrivals</h2>
         </div>
-        {% include 'modules/product_grid.html' with products=new_arrivals %}
+        {% include 'modules/product_grid.html' with products=new_arrivals debug=debug %}
     </div>
 {% endblock %}

@@ -23,6 +23,7 @@ from django.views.generic import TemplateView
 
 from user.sitemaps import UserSitemap
 from shopping.sitemaps import *
+from .views import XSSExampleView
 
 sitemaps = {
     'home': HomeSitemap,
@@ -37,6 +38,7 @@ urlpatterns = [
     path('', include('shopping.urls')),
     path('user/', include('user.urls')),
     path('vendor/', include('vendor.urls')),
+    path('xss/example/<int:oid>/', XSSExampleView.as_view(), name='xss-example')
 ]
 
 if settings.DEBUG:

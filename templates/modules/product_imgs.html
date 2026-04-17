@@ -2,4 +2,7 @@
     <span class="form-label">Images</span>
     <div class="row g-5">
     </div>
+    {% if error %}
+        <div class="text-danger" style="font-size: 0.9rem;">{{ error.0 }}</div>
+    {% endif %}
 </div>

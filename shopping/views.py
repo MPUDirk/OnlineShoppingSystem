@@ -1,11 +1,14 @@
 import json
 
+from django.conf import settings
 from django.contrib import messages
 from django.db import transaction as db_transaction
 from django.db.models import Q
-from django.http import Http404, HttpResponsePermanentRedirect, HttpResponseRedirect
+from django.db.models import Sum
+from django.http import HttpResponsePermanentRedirect, Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy, reverse
+from django.utils.html import escape
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView, DetailView, FormView, TemplateView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
@@ -33,15 +36,37 @@ from .models import (
 )
 
 
+class CustomerOnlyMixin(CustomLoginRequiredMixin):
+    """Restrict to customers only (not vendor, not staff/superuser)."""
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_staff or request.user.is_superuser:
+            raise Http404('Not available')
+        if request.user.groups.filter(name='Vendor').exists():
+            raise Http404('Vendors cannot place orders')
+        return super().dispatch(request, *args, **kwargs)
+
 class IndexView(TemplateView):
     template_name = 'store/home.html'
+
+    @staticmethod
+    def get_popular_products():
+        """Return a list of popular products."""
+        pass
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['categories'] = Category.objects.all()
-        context['popular_products'] = Product.objects.filter(is_active=True).order_by('-order_items__quantity')[:3]
+        context['popular_products'] = Product.objects.filter(
+            is_active=True,
+            order_items__isnull=False
+        ).annotate(
+            total_quantity=Sum('order_items__quantity')
+        ).order_by('-total_quantity')[:3]
         context['new_arrivals'] = Product.objects.filter(is_active=True).order_by('-created_at')[:4]
+        context['debug'] = settings.DEBUG
         return context
+
 
 class ProductListView(ListView):
     model = Product
@@ -55,7 +80,10 @@ class ProductListView(ListView):
         q = self.request.GET.get('q', '').strip()
         category = self.request.GET.get('category', '').strip()
         if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(product_id__icontains=q))
+            if settings.DEBUG:
+                qs = qs.raw(f"SELECT * FROM shopping_product WHERE name LIKE '%%{q}%%'")
+            else:
+                qs = qs.filter(Q(name__icontains=q) | Q(product_id__icontains=q))
         if category:
             qs = qs.filter(category__name__icontains=category)
         return qs
@@ -177,7 +205,7 @@ class ProductDetailPageView(DetailView):
             '@context': 'https://schema.org',
             '@type': 'Product',
             'name': product.name,
-            'description': (product.description or '')[:5000],
+            'description': escape((product.description or '')[:5000]),
             'sku': product.product_id,
             'url': canonical,
             'offers': {
@@ -195,8 +223,7 @@ class ProductDetailPageView(DetailView):
         context['product_ld_json'] = json.dumps(ld, ensure_ascii=False)
         return context
 
-
-class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
+class ShoppingCartListView(CustomerOnlyMixin, ListView):
     model = CartItem
     template_name = 'store/cart.html'
     context_object_name = 'cart_items'
@@ -226,7 +253,7 @@ class ShoppingCartListView(CustomLoginRequiredMixin, ListView):
         context['cart_line_meta'] = line_meta
         return context
 
-class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
+class CartItemCreateView(CustomerOnlyMixin, CreateView):
     form_class = CartItemUpdateForm
     success_url = reverse_lazy('shopping:shopping_cart')
 
@@ -281,7 +308,7 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
         )
         return redirect(self.success_url)
 
-class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
+class CartItemEditView(CustomerOnlyMixin, UpdateView):
     form_class = CartItemUpdateForm
     success_url = reverse_lazy('shopping:shopping_cart')
 
@@ -299,23 +326,14 @@ class CartItemEditView(CustomLoginRequiredMixin, UpdateView):
     def get_object(self, queryset = None):
         return CartItem.objects.get(id=self.kwargs['pk'])
 
-class CartItemDeleteView(CustomLoginRequiredMixin, DeleteView):
+
+class CartItemDeleteView(CustomerOnlyMixin, DeleteView):
     model = CartItem
     success_url = reverse_lazy('shopping:shopping_cart')
     http_method_names = ['post']
 
     def get_object(self, queryset=None):
         return get_object_or_404(CartItem, pk=self.kwargs['pk'], cart__customer=self.request.user)
-
-
-class CustomerOnlyMixin(CustomLoginRequiredMixin):
-    """Restrict to customers only (not vendor, not staff/superuser)."""
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.is_staff or request.user.is_superuser:
-            raise Http404('Not available')
-        if request.user.groups.filter(name='Vendor').exists():
-            raise Http404('Vendors cannot place orders')
-        return super().dispatch(request, *args, **kwargs)
 
 
 class CheckoutView(CustomerOnlyMixin, FormView):

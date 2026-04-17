@@ -123,6 +123,7 @@
 {% block extra_js %}
     <script>
         const is_img_data = {{ product.images.exists|lower }}
+        const img_data = {{ img_data|safe }}
     </script>
     <script src="{% static 'js/product_imgs.js' %}"></script>
     <script src="{% static 'js/vendor_product_thumbnail.js' %}"></script>

@@ -37,7 +37,7 @@
                     <div class="text-danger" style="font-size: 0.9rem;">{{ form.thumbnail.errors.0 }}</div>
                 {% endif %}
             </div>
-            {% include 'modules/product_imgs.html' %}
+            {% include 'modules/product_imgs.html' with error=form.image1.errors %}
             <div class="form-group" style="margin-bottom: 1rem;">
                 <label for="id_description" class="form-label">Description</label>
                 {{ form.description }}

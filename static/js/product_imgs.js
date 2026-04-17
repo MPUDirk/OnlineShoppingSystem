@@ -25,11 +25,28 @@ const img_input = (i) => {
 let img_inputs = [img_input(1)];
 let is_end = false;
 
+function load_img_data() {
+    img_inputs = [];
+    img_data.forEach((item, index) => {
+        const ii = img_input(index + 1);
+
+        ii.querySelector('label').classList.add('d-none');
+        ii.querySelector(`#preview${index + 1}`).classList.remove('d-none');
+        ii.querySelector(`#image${index + 1}`).src = item;
+
+        img_inputs.push(ii);
+        console.log(ii)
+    });
+
+    img_inputs.push(img_input(img_inputs.length + 1))
+    img_group.append(...img_inputs);
+}
+
 document.addEventListener(
     'DOMContentLoaded',
     (e) => {
         if (is_img_data) {
-            load_img_data()
+            load_img_data();
         } else {
             img_group.append(...img_inputs);
         }

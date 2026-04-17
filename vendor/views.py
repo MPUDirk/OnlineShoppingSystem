@@ -315,6 +315,7 @@ class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
             .prefetch_related('properties')
             .order_by('pk')
         )
+        context['img_data'] = [img.image.url for img in self.get_object().images.all()]
         return context
 
     def get_success_url(self):

@@ -5,9 +5,15 @@
             <div class="product-info">
                 <h3 class="product-title">{{ product.name }}</h3>
                 <p class="product-price">${{ product.price }}</p>
-                <p class="product-desc" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">
-                    {{ product.description|truncatewords:15 }}
-                </p>
+                {% if debug %}
+                    <p class="product-desc" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">
+                        {{ product.description|safe|truncatewords:30 }}
+                    </p>
+                {% else %}
+                    <p class="product-desc" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;">
+                        {{ product.description|truncatewords:15 }}
+                    </p>
+                {% endif %}
                 <div class="product-actions">
                     <a href="{% url 'shopping:product_detail' product.slug %}" class="btn btn-primary"
                        style="width: 100%;">View Details</a>
