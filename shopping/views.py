@@ -33,6 +33,11 @@ from .models import (
 )
 
 
+def _json_for_script_tag(obj) -> str:
+    """Serialize JSON for embedding in <script>; escape '<' so </script> in data cannot close the tag."""
+    return json.dumps(obj, ensure_ascii=False).replace('<', '\\u003c')
+
+
 class IndexView(TemplateView):
     template_name = 'store/home.html'
 
@@ -192,7 +197,7 @@ class ProductDetailPageView(DetailView):
             ld['image'] = images_ld[0]
         elif images_ld:
             ld['image'] = images_ld
-        context['product_ld_json'] = json.dumps(ld, ensure_ascii=False)
+        context['product_ld_json'] = _json_for_script_tag(ld)
         return context
 
 
