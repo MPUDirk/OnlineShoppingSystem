@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}用户注册 - 在线商城{% endblock %}
 
@@ -8,7 +9,7 @@
     
     <div id="registerMessage"></div>
 
-    <form id="signupForm" method="post">
+    <form id="signupForm" method="post" data-html5-lang="en">
         {% csrf_token %}
 
         <div class="form-group">
@@ -45,6 +46,7 @@
 </div>
 
 
+<script src="{% static 'js/html5-validation-en.js' %}"></script>
 <script>
     function showMessage(elementId, message, type) {
         const element = document.getElementById(elementId);

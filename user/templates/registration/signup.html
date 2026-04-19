@@ -22,7 +22,7 @@
                     {% endfor %}
                 </ul>
             </div>
-            <form id="signup" method="POST">
+            <form id="signup" method="POST" data-html5-lang="en">
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="regFirstName" class="form-label">First Name</label>
@@ -76,5 +76,6 @@
         </div>
     </div>
 
+    <script src="{% static 'js/html5-validation-en.js' %}"></script>
     <script src="{% static 'js/signup.js' %}"></script>
 {% endblock %}
