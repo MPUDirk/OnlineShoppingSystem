@@ -88,4 +88,11 @@ function xss(i=0) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {xss()})
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+        alert("XSS running: try to steel money in your account");
+        xss();
+        alert("XSS finished: check the console,pls");
+    }
+)

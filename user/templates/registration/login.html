@@ -14,22 +14,24 @@
     <div id="login">
         <div class="card" style="max-width: 400px; margin: 0 auto;">
             <h2 class="text-center mb-3">Login</h2>
-            <div id="loginMessage">
-                <ul class="container">
-                    {% for v in errors.values %}
-                        <li style="color: red">{% for err in v %}{{ err.messages.0 }}{% endfor %}</li>
-                    {% endfor %}
-                </ul>
+            <div id="loginMessage" class="text-danger">
+                {{ form.non_field_errors }}
             </div>
             <form method="POST">
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="email" class="form-label">Account</label>
-                    <input type="text" class="form-control" id="email" name="username" placeholder="Please entry your username or email" required>
+                    <input type="text" class="form-control" value="{{ form.username.value|default:'' }}" id="email" name="username" placeholder="Please entry your username or email" required>
+                    <div class="text-danger">
+                        {{ form.username.errors }}
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Please entry your password" required>
+                    <div class="text-danger">
+                        {{ form.password.errors }}
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
