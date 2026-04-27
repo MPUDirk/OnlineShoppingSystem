@@ -1,5 +1,4 @@
 from django import forms
-from django.core.validators import MinValueValidator
 from django.db import transaction as db_transaction
 
 from shopping.models import Product, Category, ProductImage, ProductPropertyTitle, ProductProperty
@@ -106,11 +105,10 @@ class PropertyOptionForm(forms.ModelForm):
 
     class Meta:
         model = ProductProperty
-        fields = ['name', 'change_value', 'sku', 'image']
+        fields = ['name', 'change_value', 'image']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'change_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'sku': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
             'image': forms.FileInput(attrs={'accept': 'image/*'}),
         }
 
@@ -125,6 +123,8 @@ class PropertyOptionForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        if not instance.pk:
+            instance.sku = 0
         if instance.pk and not self.cleaned_data.get('image'):
             instance.image = self.instance.image
         if commit:

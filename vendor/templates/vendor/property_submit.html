@@ -6,7 +6,7 @@
 {% block content %}
 <div class="card" style="max-width: 32rem;">
     <h2>{{ form_heading }}</h2>
-    <p class="text-muted">{{ product.name }} — name, optional price change, and numeric code (legacy field).</p>
+    <p class="text-muted">{{ product.name }} — name, optional price change, and image.</p>
     <form method="post" enctype="multipart/form-data" id="property-option-form">
         {% csrf_token %}
         {% for field in form %}
