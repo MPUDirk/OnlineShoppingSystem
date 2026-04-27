@@ -438,7 +438,7 @@ class ProductProperty(models.Model):
     image = models.ImageField(upload_to='product_properties/', blank=True)
     name = models.CharField(max_length=255)
     change_value = models.DecimalField(default=0, max_digits=10, decimal_places=2, blank=True, null=True)
-    sku = models.IntegerField(validators=[MinValueValidator(0)])
+    sku = models.IntegerField(default=0, validators=[MinValueValidator(0)])
 
     class Meta:
         ordering = ['pk']
