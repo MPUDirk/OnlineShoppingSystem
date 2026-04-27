@@ -123,8 +123,6 @@ class PropertyOptionForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        if not instance.pk:
-            instance.sku = 0
         if instance.pk and not self.cleaned_data.get('image'):
             instance.image = self.instance.image
         if commit:
