@@ -16,12 +16,12 @@ Create a MySQL database, then add `db.cnf` next to `manage.py`:
 
 ```ini
 [client]
-database = ISP
-user = isp-share
-password = p@ssword
-host = localhost
-port = 12345
-default-character-set = utf8mb4
+database = 
+user = 
+password = 
+host = 
+port = 
+default-character-set = 
 ```
 
 ```bash
