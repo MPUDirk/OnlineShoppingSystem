@@ -69,6 +69,7 @@
             <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
                 <a href="{% url 'vendor:product_skus' product.pk %}" class="btn btn-outline-primary">SKU inventory</a>
+                <span class="text-muted small d-block mt-2">Options here (size, colour, …) define what shoppers pick. Stock is toggled per SKU on the <strong>SKU inventory</strong> page — adding options under a single attribute type generates one SKU row per option automatically.</span>
                 <a href="{% url 'shopping:product_detail' product.slug %}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>

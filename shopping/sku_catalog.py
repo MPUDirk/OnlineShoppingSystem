@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from .models import Product, ProductProperty, ProductPropertyTitle, ProductSKU, SKUProductProperty
+from .models import Product, ProductPropertyTitle, ProductSKU, SKUProductProperty
 
 
 def get_groups_with_options(product: Product) -> List[ProductPropertyTitle]:
@@ -16,8 +16,48 @@ def get_groups_with_options(product: Product) -> List[ProductPropertyTitle]:
     return out
 
 
-def ensure_default_sku(product: Product) -> ProductSKU:
-    """One SKU with no property links for simple products (no configurable options)."""
+def _delete_linkless_placeholder_skus(product: Product) -> None:
+    """Remove *-DEFAULT and other SKU rows not tied to variants (inventory page cleanup)."""
+    for sku in ProductSKU.objects.filter(product=product).prefetch_related('property_links'):
+        if sku.property_links.count() == 0:
+            sku.delete()
+
+
+def sync_product_skus(product: Product) -> None:
+    """
+    Keep ProductSKU rows in sync with configurable options.
+
+    - No attribute groups with options → one linkless SKU (``{product_id}-DEFAULT``).
+    - Exactly one dimension (e.g. only Size): one SKU per option, codes ``{product_id}-P{property_pk}``.
+    - More than one dimension: no automatic matrix; remove placeholder/linkless SKUs only.
+    """
+    groups = get_groups_with_options(product)
+
+    if not groups:
+        ensure_default_sku(product)
+        return
+
+    if len(groups) > 1:
+        _delete_linkless_placeholder_skus(product)
+        return
+
+    g = groups[0]
+    for prop in g.properties.all():
+        code = f'{product.product_id}-P{prop.pk}'
+        sku, _ = ProductSKU.objects.get_or_create(
+            product=product,
+            sku=code,
+            defaults={'in_stock': True},
+        )
+        SKUProductProperty.objects.get_or_create(sku=sku, product_property=prop)
+
+    _delete_linkless_placeholder_skus(product)
+
+
+def ensure_default_sku(product: Product) -> Optional[ProductSKU]:
+    """One SKU with no property links for simple products only (no attribute options)."""
+    if get_groups_with_options(product):
+        return None
     for sku in ProductSKU.objects.filter(product=product).prefetch_related('property_links'):
         if sku.property_links.count() == 0:
             return sku
@@ -105,18 +145,6 @@ def property_in_stock_map(product: Product) -> dict:
 
 @transaction.atomic
 def seed_skus_for_single_group_products():
-    """Data migration helper: one SKU per option when exactly one attribute group exists."""
+    """Bulk backfill helper: normalize SKUs for every product."""
     for product in Product.objects.all():
-        ensure_default_sku(product)
-        groups = get_groups_with_options(product)
-        if len(groups) != 1:
-            continue
-        g = groups[0]
-        for prop in g.properties.all():
-            code = f'{product.product_id}-P{prop.pk}'
-            sku, _ = ProductSKU.objects.get_or_create(
-                product=product,
-                sku=code,
-                defaults={'in_stock': True},
-            )
-            SKUProductProperty.objects.get_or_create(sku=sku, product_property=prop)
+        sync_product_skus(product)

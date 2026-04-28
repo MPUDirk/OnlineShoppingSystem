@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -10,8 +10,16 @@ from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView, DeleteView, FormView, TemplateView
 
 from OnlineShoppingSys.modules import CustomLoginRequiredMixin
-from shopping.models import Product, Order, OrderStatusHistory, ProductPropertyTitle, ProductProperty, ProductSKU
-from shopping.sku_catalog import get_configuration_label
+from shopping.models import (
+    Product,
+    Order,
+    OrderItem,
+    OrderStatusHistory,
+    ProductPropertyTitle,
+    ProductProperty,
+    ProductSKU,
+)
+from shopping.sku_catalog import get_configuration_label, sync_product_skus
 from user.models import Wallet, Transaction
 from .analytics import (
     kpi_for_range,
@@ -324,9 +332,26 @@ class ProductUpdateView(ProductEditPermissionMixin, UpdateView):
 class ProductDeleteView(ProductEditPermissionMixin, DeleteView):
     model = Product
     context_object_name = 'product'
+    success_url = reverse_lazy('vendor:home')
+
+    def get(self, request, *args, **kwargs):
+        # Confirmation is handled by the modal on the vendor product list; only POST deletes.
+        return HttpResponseNotAllowed(['POST'])
 
     def get_object(self, queryset=None):
-        return Product.objects.get(id=self.kwargs['pk'])
+        return get_object_or_404(Product, pk=self.kwargs['pk'])
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if OrderItem.objects.filter(product=self.object).exists():
+            messages.error(
+                request,
+                'This product cannot be deleted because it appears in orders. '
+                'Edit the product and set it inactive instead.',
+            )
+            return redirect(self.success_url)
+        messages.success(request, 'Product deleted.')
+        return super().delete(request, *args, **kwargs)
 
 
 class VendorSalesReportView(VendorOrAdminRequiredMixin, TemplateView):
@@ -382,6 +407,8 @@ class ProductSkuListView(ProductEditPermissionMixin, ListView):
     context_object_name = 'skus'
 
     def get_queryset(self):
+        product = get_object_or_404(Product, pk=self.kwargs['pk'])
+        sync_product_skus(product)
         return ProductSKU.objects.filter(product_id=self.kwargs['pk']).prefetch_related(
             'property_links__product_property__title',
         ).order_by('sku')

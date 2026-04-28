@@ -1,28 +1,29 @@
-const del_btn = document.querySelector('button[data-action]');
-const confirm_btn = document.getElementById('confirm_btn');
+document.addEventListener('DOMContentLoaded', () => {
+    const modalEl = document.getElementById('exampleModal');
+    const confirmBtn = document.getElementById('confirm_btn');
+    const form = document.getElementById('vendor-delete-product-form');
+    const deleteBtns = document.querySelectorAll('.vendor-product-delete-btn');
 
-const temp_form = document.createElement('form');
-
-
-del_btn.addEventListener(
-    'click',
-    (e) => {
-        const modal = new bootstrap.Modal(document.getElementById('exampleModal'));
-
-        modal.show();
-
-        temp_form.method = 'POST';
-        temp_form.action = del_btn.dataset.action;
-
-        const csrf_token = document.querySelector('input[name="csrfmiddlewaretoken"]');
-        temp_form.appendChild(csrf_token);
+    if (!modalEl || !confirmBtn || !form || deleteBtns.length === 0) {
+        return;
     }
-)
 
-confirm_btn.addEventListener(
-    'click',
-    (e) => {
-        document.appendChild(temp_form);
-        temp_form.submit();
-    }
-)
+    const modal = new bootstrap.Modal(modalEl);
+    let pendingDeleteUrl = '';
+
+    deleteBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            pendingDeleteUrl = btn.getAttribute('data-delete-url');
+            modal.show();
+        });
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        if (!pendingDeleteUrl) {
+            return;
+        }
+        form.action = pendingDeleteUrl;
+        form.submit();
+        pendingDeleteUrl = '';
+    });
+});

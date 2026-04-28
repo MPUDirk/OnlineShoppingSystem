@@ -18,7 +18,7 @@ from .sku_catalog import (
     get_configuration_label,
     get_groups_with_options,
     property_in_stock_map,
-    ensure_default_sku,
+    sync_product_skus,
 )
 from .models import (
     Product,
@@ -119,7 +119,7 @@ class ProductDetailPageView(DetailView):
         else:
             can_edit = False
         context['can_edit'] = can_edit
-        ensure_default_sku(product)
+        sync_product_skus(product)
         stock_map = property_in_stock_map(product)
         context['property_in_stock_map'] = stock_map
         oos_ids = {pid for pid, ok in stock_map.items() if not ok}
@@ -257,7 +257,7 @@ class CartItemCreateView(CustomLoginRequiredMixin, CreateView):
                 'Please choose an option for each attribute (for example Type).',
             )
             return redirect('shopping:product_detail', slug=product.slug)
-        ensure_default_sku(product)
+        sync_product_skus(product)
         sku = find_sku_for_selection(product, selection)
         if sku is None:
             messages.error(
